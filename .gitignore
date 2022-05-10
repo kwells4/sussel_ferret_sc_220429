@@ -1,0 +1,9 @@
+*raw_data/
+.*
+!.gitignore
+!.gitattributes
+results/*/*
+!results/*/outs/
+results/*/outs/*
+!results/*/outs/web_summary.html
+logs/*
