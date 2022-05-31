@@ -8,3 +8,9 @@ results/*/outs/*
 !results/*/outs/web_summary.html
 logs/*
 files/*.pptx
+.Rproj.user
+src/scripts/*/initial_processing.rmd
+src/scripts/*/04*
+src/scripts/*/05*
+src/scripts/*/06*
+websummaries*
