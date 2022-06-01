@@ -14,3 +14,4 @@ src/scripts/*/04*
 src/scripts/*/05*
 src/scripts/*/06*
 websummaries*
+files/*.csv
