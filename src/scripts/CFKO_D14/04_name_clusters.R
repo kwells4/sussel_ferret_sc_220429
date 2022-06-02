@@ -12,7 +12,7 @@ ggplot2::theme_set(ggplot2::theme_classic(base_size = 10))
 
 normalization_method <- "log" # can be SCT or log
 
-sample <- "WT_D2"
+sample <- "CFKO_D14"
 
 source(here("src/scripts/functions.R"))
 
@@ -21,6 +21,7 @@ all_ref_dir <-
 
 HTO <- FALSE
 ADT <- FALSE
+cor_cutoff <- 0.4
 
 if(normalization_method == "SCT"){
   SCT <- TRUE
@@ -61,8 +62,9 @@ cluster_res <- clustifyr_orthologs(seurat_data, ref_mat,
                                    mapping_gene_col = "gene_id",
                                    mapping_ortholog_col = "Mouse.gene.name",
                                    assay = "RNA",
-                                   nfeatures = 1500, clusters = "RNA_cluster",
-                                   plot_type = "rna.umap")
+                                   nfeatures = 2000, clusters = "RNA_cluster",
+                                   plot_type = "rna.umap",
+                                   cor_cutoff = cor_cutoff)
 
 seurat_data <- cluster_res$object
 
@@ -94,8 +96,9 @@ cluster_res <- clustifyr_orthologs(seurat_data, ref_mat,
                                    mapping_gene_col = "gene_id",
                                    mapping_ortholog_col = "Mouse.gene.name",
                                    assay = "RNA",
-                                   nfeatures = 1500, clusters = "RNA_cluster",
-                                   plot_type = "rna.umap")
+                                   nfeatures = 2000, clusters = "RNA_cluster",
+                                   plot_type = "rna.umap",
+                                   cor_cutoff = cor_cutoff)
 
 
 seurat_data <- cluster_res$object
@@ -128,7 +131,7 @@ cluster_res <- clustifyr_orthologs(seurat_data, ref_mat,
                                    assay = "RNA",
                                    nfeatures = 2000, clusters = "RNA_cluster",
                                    plot_type = "rna.umap",
-                                   cor_cutoff = 0.4)
+                                   cor_cutoff = cor_cutoff)
 
 
 seurat_data <- cluster_res$object
@@ -152,15 +155,15 @@ full_res <- cbind(cbind(seurat_res_baron, seurat_res_byrnes),
                   seurat_res_tabula_muris)
 
 seurat_cluster <- cor_to_call(full_res) %>% 
-  mutate(type = ifelse(r < 0.4, "undetermined", type))
+  mutate(type = ifelse(r < cor_cutoff, "undetermined", type))
 
 new_clusters <- seurat_cluster$type
 
 names(new_clusters) <- seurat_cluster$cluster
 
-seurat_data$RNA_combned_celltype <- new_clusters[seurat_data$RNA_cluster]
+seurat_data$RNA_combined_celltype <- new_clusters[seurat_data$RNA_cluster]
 
-plotDimRed(seurat_data, col_by = "RNA_combned_celltype",
+plotDimRed(seurat_data, col_by = "RNA_combined_celltype",
            plot_type = "rna.umap")
 
 #-------------------------------------------------------------------------------

@@ -72,3 +72,181 @@ clustifyr_orthologs <- function (seurat_object, ref_mat, save_dir,
   return_list$object <- seurat_object
   return(return_list)
 }
+
+find_write_markers_orthologs <- function(seurat_object, save_dir,
+                                         mapping_file = NULL,
+                                         mapping_gene_col = NULL,
+                                         mapping_ortholog_col = NULL,
+                                         meta_col = "RNA_cluster",
+                                         assay = "RNA", pval = 0.05,
+                                         logfc = 0.5, gene_lists = NULL,
+                                         pairwise = FALSE) {
+  
+  ifelse(!dir.exists(file.path(save_dir, "files", "DE")),
+         dir.create(file.path(save_dir, "files", "DE")), FALSE)
+  
+  Idents(seurat_object) <- meta_col
+  
+  if (pairwise) {
+    marker_genes <- find_write_markers_pairwise_ortj(seurat_object = seurat_object, 
+                                                save_dir = save_dir,
+                                                meta_col = meta_col,
+                                                assay = assay, 
+                                                pval = pval, logfc = logfc,
+                                                gene_lists = gene_lists,
+                                                mapping_file = mapping_file,
+                                                mapping_gene_col = mapping_gene_col,
+                                                mapping_ortholog_col = mapping_ortholog_col)
+  } else {
+    marker_genes <- find_write_markers_orig_orth(seurat_object = seurat_object, 
+                                            save_dir = save_dir,
+                                            meta_col = meta_col, assay = assay, 
+                                            pval = pval, logfc = logfc,
+                                            gene_lists = gene_lists,
+                                            mapping_file = mapping_file,
+                                            mapping_gene_col = mapping_gene_col,
+                                            mapping_ortholog_col = mapping_ortholog_col)
+  }
+  return(marker_genes)
+}
+
+find_write_markers_orig_orth <- function(seurat_object, save_dir,
+                                         meta_col = "RNA_cluster", 
+                                         mapping_file = NULL,
+                                         mapping_gene_col = NULL,
+                                         mapping_ortholog_col = NULL,
+                                         assay = "RNA", pval = 0.05,
+                                         logfc = 0.5, gene_lists = NULL) 
+{
+  marker_genes <- FindAllMarkers(seurat_object, assay = seurat_assay, 
+                                 only.pos = TRUE)
+  if(!is.null(mapping_file)){
+    # Add in ortholog gene
+    new_mapping <- mapping_file %>%
+      dplyr::select(all_of(c(mapping_gene_col, mapping_ortholog_col)))
+    
+    marker_genes <- merge(marker_genes, new_mapping, by.x = "gene",
+                          by.y = mapping_gene_col, all.x = TRUE,
+                          all.y = FALSE) %>%
+      distinct() %>%
+      group_by(cluster) %>%
+      arrange(p_val_adj, .by_group = TRUE)
+  }
+  
+  write.csv(marker_genes, file = file.path(save_dir, "files", 
+                                           "DE", paste0(assay, "_markers_",
+                                                        meta_col, ".csv")))
+  gene_wb <- createWorkbook()
+  
+  full_list <- lapply(unique(marker_genes$cluster), function(x) {
+    x <- as.character(x)
+    new_df <- marker_genes %>% dplyr::filter(cluster == x & 
+                                               p_val_adj < pval &
+                                               avg_log2FC > logfc)
+    addWorksheet(gene_wb, x)
+    writeData(gene_wb, x, new_df)
+  })
+  
+  if (!is.null(gene_lists)) {
+    hypergeometric <- hypergeometric_test(seurat_object = seurat_data, 
+                                          gene_list = gene_lists,
+                                          DE_table = marker_genes, 
+                                          DE_p_cutoff = 0.05,
+                                          DE_lfc_cutoff = 0.5,
+                                          correction_method = "fdr")
+    write.csv(hypergeometric, file = file.path(save_dir, 
+                                               "files", "DE",
+                                               paste0(assay, "_hypergeometric_", 
+                                                      meta_col, ".csv")))
+    
+    full_list <- lapply(unique(hypergeometric$cluster), function(x) {
+      x <- as.character(x)
+      new_df <- hypergeometric %>% dplyr::filter(cluster == 
+                                                   x)
+      worksheet_name <- paste0(x, "_gse")
+      addWorksheet(gene_wb, worksheet_name)
+      writeData(gene_wb, worksheet_name, new_df)
+    })
+  }
+  saveWorkbook(gene_wb, file = file.path(save_dir, "files", 
+                                         "DE", paste0(assay, "_markers_",
+                                                      meta_col, ".xlsx")), 
+               overwrite = TRUE)
+  return(marker_genes)
+}
+
+find_write_markers_pairwise_ortj <- function(seurat_object, save_dir,
+                                             mapping_file = NULL,
+                                             mapping_gene_col = NULL,
+                                             mapping_ortholog_col = NULL,
+                                             meta_col = "RNA_cluster",
+                                             assay = "RNA", pval = 0.05,
+                                             logfc = 0.5, gene_lists = NULL) {
+  marker_genes <- pairwise_markers(seurat_object, assay = seurat_assay, 
+                                   meta_col = meta_col)
+  
+  if(!is.null(mapping_file)){
+    # Add in ortholog gene
+    new_mapping <- mapping_file %>%
+      dplyr::select(all_of(c(mapping_gene_col, mapping_ortholog_col)))
+    
+    marker_genes <- merge(marker_genes, new_mapping, by.x = "gene",
+                          by.y = mapping_gene_col, all.x = TRUE,
+                          all.y = FALSE) %>%
+      distinct() %>%
+      group_by(cluster) %>%
+      arrange(p_val_adj, .by_group = TRUE)
+  }
+  
+  write.csv(marker_genes, file = file.path(save_dir, "files", 
+                                           "DE",
+                                           paste0(assay,
+                                                  "_pairwise_markers_",
+                                                  meta_col, ".csv")))
+  
+  gene_wb <- createWorkbook()
+  values <- unique(c(marker_genes$cluster_down, marker_genes$cluster_up))
+  combinations <- combn(unique(c(marker_genes$cluster_down, 
+                                 marker_genes$cluster_up)), m = 2)
+  full_list <- lapply(1:ncol(combinations), function(x) {
+    ident1 <- combinations[1, x]
+    ident2 <- combinations[2, x]
+    sheet_name <- paste0(ident1, "_vs_", ident2)
+    new_df <- marker_genes %>% 
+      dplyr::filter((cluster_up == ident1 & 
+                       cluster_down == ident2) | 
+                      (cluster_up == ident2 & cluster_down == ident1)) %>% 
+      dplyr::filter(p_val_adj < pval & avg_log2FC > logfc)
+    addWorksheet(gene_wb, sheet_name)
+    writeData(gene_wb, sheet_name, new_df)
+  })
+  marker_genes$cluster <- paste0(marker_genes$cluster_up, "_vs_", 
+                                 marker_genes$cluster_down)
+  if (!is.null(gene_lists)) {
+    hypergeometric <- hypergeometric_test(seurat_object = seurat_data, 
+                                          gene_list = gene_lists,
+                                          DE_table = marker_genes, 
+                                          DE_p_cutoff = 0.05,
+                                          DE_lfc_cutoff = 0.5, correction_method = "fdr")
+    write.csv(hypergeometric, file = file.path(save_dir, 
+                                               "files", "DE", paste0(assay,
+                                                                     "_hypergeometric_", 
+                                                                     meta_col,
+                                                                     ".csv")))
+    full_list <- lapply(unique(hypergeometric$cluster), function(x) {
+      x <- as.character(x)
+      new_df <- hypergeometric %>% dplyr::filter(cluster == 
+                                                   x)
+      worksheet_name <- paste0(x, "_gse")
+      addWorksheet(gene_wb, worksheet_name)
+      writeData(gene_wb, worksheet_name, new_df)
+    })
+  }
+  saveWorkbook(gene_wb, file = file.path(save_dir, "files", 
+                                         "DE", paste0(assay,
+                                                      "_pairwise_markers_",
+                                                      meta_col, ".xlsx")), 
+               overwrite = TRUE)
+  
+  return(marker_genes)
+}
