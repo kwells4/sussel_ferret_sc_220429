@@ -15,19 +15,39 @@ sample_info <- sample_list[[sample]]
 
 ###`r extra_pound_celltype` **`r sect_title`**
 
-```{r {{sample}}-celltype, fig.height=8, fig.width=8}
+#### Reference 1
+First, I used [A Single-Cell Transcriptomic Map of the Human and Mouse Pancreas Reveals Inter- and Intra-cell Population Structure](https://www.sciencedirect.com/science/article/pii/S2405471216302666?via%3Dihub) as the reference.
+
+Cell types in the reference are:
+```{r}
+all_ref_dir <-
+  "/Users/wellskr/Documents/Analysis/references/single_cell_references"
+ref_dir <- file.path(all_ref_dir, "pancreas/byrnes_2018_mouse")
+
+ref_mat <- read.csv(file.path(ref_dir, "E14_epithelial_average.csv"),
+                    header = TRUE, row.names = 1)
+
+print(colnames(ref_mat))
+```
+
+A) UMAP colored by clusters
+B) UMAP colored by cell type defined within each individual sample
+C) UMAP colored by cell type defined when the samples are combined  (this will show up after we combine samples.)
+D) Barplot showing the percent of cells that were assigned to each cell type. 
+
+```{r {{sample}}-celltype-one, fig.height=8, fig.width=8}
 seurat_object <- sample_info$seurat_object
 
 if(sample_info$type == "single"){
   plot1 <- plotDimRed(seurat_object, col_by = "RNA_cluster",
            plot_type = "rna.umap")[[1]]
   plot2 <- plotDimRed(seurat_object,
-                      col_by = "RNA_celltype", plot_type = "rna.umap",
-                      color = celltype_colors)[[1]]
+                      col_by = "RNA_baron_celltype", plot_type = "rna.umap",
+                      color = baron_colors)[[1]]
   barplot1 <- stacked_barplots(seurat_object = seurat_object,
-                               meta_col = "RNA_celltype",
+                               meta_col = "RNA_baron_celltype",
                                percent = TRUE,
-                               color = celltype_colors)
+                               color = baron_colors)
   plot_grid(plot1, plot2, NULL, NULL, barplot1,
             labels = c("A", "B", "", "", "D"),
             align = "hv", axis = "lr",
@@ -39,11 +59,173 @@ if(sample_info$type == "single"){
                       col_by = c("RNA_celltype",
                                  "RNA_combined_celltype"),
                       plot_type = "rna.umap",
-                      color = celltype_colors)
+                      color = baron_colors)
   barplot1 <- stacked_barplots(seurat_object = seurat_object,
                                meta_col = "RNA_combined_celltype",
                                percent = TRUE,
-                               color = celltype_colors,
+                               color = baron_colors,
+                               split_by = "sample")
+  plot_grid(plot1, plot2[[1]], plot2[[2]], NULL, barplot1,
+            labels = c("A", "B", "C", "", "D"),
+            align = "hv", axis = "lr",
+            nrow = 3, ncol = 2)
+}
+```
+
+#### Reference 2
+Second, I used [Lineage dynamics of murine pancreatic development at single-cell resolution](https://www.nature.com/articles/s41467-018-06176-3) as the reference.
+
+Cell types in the reference are:
+```{r}
+all_ref_dir <-
+  "/Users/wellskr/Documents/Analysis/references/single_cell_references"
+
+ref_dir <- file.path(all_ref_dir, "pancreas/byrnes_2018_mouse")
+
+ref_mat <- read.csv(file.path(ref_dir, "E14_epithelial_average.csv"),
+                    header = TRUE, row.names = 1)
+
+print(colnames(ref_mat))
+```
+
+A) UMAP colored by clusters
+B) UMAP colored by cell type defined within each individual sample
+C) UMAP colored by cell type defined when the samples are combined  (this will show up after we combine samples.)
+D) Barplot showing the percent of cells that were assigned to each cell type. 
+
+```{r {{sample}}-celltype-two, fig.height=8, fig.width=8}
+seurat_object <- sample_info$seurat_object
+
+if(sample_info$type == "single"){
+  plot1 <- plotDimRed(seurat_object, col_by = "RNA_cluster",
+           plot_type = "rna.umap")[[1]]
+  plot2 <- plotDimRed(seurat_object,
+                      col_by = "RNA_celltype_byrnes", plot_type = "rna.umap",
+                      color = byrnes_colors)[[1]]
+  barplot1 <- stacked_barplots(seurat_object = seurat_object,
+                               meta_col = "RNA_celltype_byrnes",
+                               percent = TRUE,
+                               color = byrnes_colors)
+  plot_grid(plot1, plot2, NULL, NULL, barplot1,
+            labels = c("A", "B", "", "", "D"),
+            align = "hv", axis = "lr",
+            nrow = 3, ncol = 2)
+} else {
+  plot1 <- plotDimRed(seurat_object, col_by = "uncorrected_cluster",
+           plot_type = "rna.umap")[[1]]
+  plot2 <- plotDimRed(seurat_object,
+                      col_by = c("RNA_celltype",
+                                 "RNA_combined_celltype"),
+                      plot_type = "rna.umap",
+                      color = byrnes_colors)
+  barplot1 <- stacked_barplots(seurat_object = seurat_object,
+                               meta_col = "RNA_combined_celltype",
+                               percent = TRUE,
+                               color = byrnes_colors,
+                               split_by = "sample")
+  plot_grid(plot1, plot2[[1]], plot2[[2]], NULL, barplot1,
+            labels = c("A", "B", "C", "", "D"),
+            align = "hv", axis = "lr",
+            nrow = 3, ncol = 2)
+}
+```
+
+
+#### Reference 3
+Third, I used [Single-cell transcriptomics of 20 mouse organs creates a Tabula Muris](https://www.nature.com/articles/s41586-018-0590-4) as the reference.
+
+Cell types in the reference are:
+```{r}
+all_ref_dir <-
+  "/Users/wellskr/Documents/Analysis/references/single_cell_references"
+
+ref_dir <- file.path(all_ref_dir, "pancreas/tabula_muris")
+
+ref_mat <- read.csv(file.path(ref_dir, "clustifyr_reference.csv"),
+                    header = TRUE, row.names = 1)
+
+print(colnames(ref_mat))
+```
+
+A) UMAP colored by clusters
+B) UMAP colored by cell type defined within each individual sample
+C) UMAP colored by cell type defined when the samples are combined  (this will show up after we combine samples.)
+D) Barplot showing the percent of cells that were assigned to each cell type. 
+
+```{r {{sample}}-celltype-three, fig.height=8, fig.width=8}
+seurat_object <- sample_info$seurat_object
+
+if(sample_info$type == "single"){
+  plot1 <- plotDimRed(seurat_object, col_by = "RNA_cluster",
+           plot_type = "rna.umap")[[1]]
+  plot2 <- plotDimRed(seurat_object,
+                      col_by = "RNA_tabula_muris_celltype",
+                      plot_type = "rna.umap",
+                      color = tabula_muris_colors)[[1]]
+  barplot1 <- stacked_barplots(seurat_object = seurat_object,
+                               meta_col = "RNA_tabula_muris_celltype",
+                               percent = TRUE,
+                               color = tabula_muris_colors)
+  plot_grid(plot1, plot2, NULL, NULL, barplot1,
+            labels = c("A", "B", "", "", "D"),
+            align = "hv", axis = "lr",
+            nrow = 3, ncol = 2)
+} else {
+  plot1 <- plotDimRed(seurat_object, col_by = "uncorrected_cluster",
+           plot_type = "rna.umap")[[1]]
+  plot2 <- plotDimRed(seurat_object,
+                      col_by = c("RNA_celltype",
+                                 "RNA_combined_celltype"),
+                      plot_type = "rna.umap",
+                      color = tabula_muris_colors)
+  barplot1 <- stacked_barplots(seurat_object = seurat_object,
+                               meta_col = "RNA_combined_celltype",
+                               percent = TRUE,
+                               color = tabula_muris_colors,
+                               split_by = "sample")
+  plot_grid(plot1, plot2[[1]], plot2[[2]], NULL, barplot1,
+            labels = c("A", "B", "C", "", "D"),
+            align = "hv", axis = "lr",
+            nrow = 3, ncol = 2)
+}
+```
+
+#### Combined reference
+Finally, I found the highest correlation from each cluster with any of the reference cell types and used those to define the combined cluster.
+
+A) UMAP colored by clusters
+B) UMAP colored by cell type defined within each individual sample
+C) UMAP colored by cell type defined when the samples are combined  (this will show up after we combine samples.)
+D) Barplot showing the percent of cells that were assigned to each cell type. 
+
+```{r {{sample}}-celltype-combo, fig.height=8, fig.width=8}
+seurat_object <- sample_info$seurat_object
+
+if(sample_info$type == "single"){
+  plot1 <- plotDimRed(seurat_object, col_by = "RNA_cluster",
+           plot_type = "rna.umap")[[1]]
+  plot2 <- plotDimRed(seurat_object,
+                      col_by = "RNA_combined_celltype",
+                      plot_type = "rna.umap")[[1]]
+  barplot1 <- stacked_barplots(seurat_object = seurat_object,
+                               meta_col = "RNA_combined_celltype",
+                               percent = TRUE)
+  plot_grid(plot1, plot2, NULL, NULL, barplot1,
+            labels = c("A", "B", "", "", "D"),
+            align = "hv", axis = "lr",
+            nrow = 3, ncol = 2)
+} else {
+  plot1 <- plotDimRed(seurat_object, col_by = "uncorrected_cluster",
+           plot_type = "rna.umap")[[1]]
+  plot2 <- plotDimRed(seurat_object,
+                      col_by = c("RNA_celltype",
+                                 "RNA_combined_celltype"),
+                      plot_type = "rna.umap",
+                      color = tabula_muris_colors)
+  barplot1 <- stacked_barplots(seurat_object = seurat_object,
+                               meta_col = "RNA_combined_celltype",
+                               percent = TRUE,
+                               color = tabula_muris_colors,
                                split_by = "sample")
   plot_grid(plot1, plot2[[1]], plot2[[2]], NULL, barplot1,
             labels = c("A", "B", "C", "", "D"),

@@ -13,3 +13,4 @@ src/scripts/*/initial_processing.rmd
 src/scripts/*/06*
 websummaries*
 files/*.csv
+src/scripts/*.html
