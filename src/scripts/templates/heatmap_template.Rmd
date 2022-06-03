@@ -1,0 +1,137 @@
+```{r echo = F}
+
+# Strings to match samples and create labels
+#gene <- "{{.x}}"
+sample <- "{{sample}}"
+sect_title <- sample
+
+if(!exists("extra_pound_heatmap")){
+  extra_pound_umap <- ""
+}
+
+sample_info <- sample_list[[sample]]
+
+```
+
+###`r extra_pound_heatmap` **`r sect_title`**{.tabset}
+
+####`r extra_pound_heatmap` **Combined Cell types**
+1. Left, expression of DE genes in cell types. I've colored the x axis by both the cell type and the sample so you can compare.
+2. Right, expression of DE genes in cell types averaged within each cell type. I've colored bye x axis by both the cell type and the sample so you can compare.
+```{r {{sample}}-cell-type-heatmap, fig.height=8, fig.width=12, eval = FALSE}
+seurat_object <- sample_info$seurat_object
+seurat_data <- sample_info$seurat_object
+save_dir <- sample_info$save_dir
+
+# Get marker genes that are saved
+marker_genes_rna <- read.csv(file.path(save_dir,
+                                    "files/rna_markers_cell_type.csv"),
+                             row.names = 1)
+
+seurat_data$celltype_sample <- paste0(seurat_data$RNA_combined_celltype, "_",
+                                      seurat_data$sample)
+
+seurat_data$celltype_sample <- factor(seurat_data$celltype_sample)
+
+meta_df <- data.frame(celltype_sample = seurat_data$celltype_sample,
+                      sample = seurat_data$sample,
+                      RNA_combined_celltype = seurat_data$RNA_combined_celltype)
+
+color_list <- list(sample = sample_colors,
+                   RNA_combined_celltype = celltype_colors)
+
+# Pick out the top 10 makers of each cluster
+top10_rna <- marker_genes_rna %>% 
+  dplyr::group_by(cluster) %>% 
+  dplyr::top_n(n = 10, wt = avg_log2FC) %>%
+  dplyr::arrange(cluster)
+
+# Make a heatmap with these genes
+rna_heatmap <- plot_heatmap(seurat_data, top10_rna$gene, "celltype_sample",
+                            color_list = color_list,
+                            meta_df = meta_df,
+                            plot_meta_col = FALSE)[[4]]
+
+average_meta <- data.frame(celltype_sample = levels(meta_df$celltype_sample))
+average_meta$sample <- gsub(".*_", "", average_meta$celltype_sample)
+average_meta$RNA_combined_celltype <- gsub("_AT.*", "",
+                                           average_meta$celltype_sample)
+
+rownames(average_meta) <- average_meta$celltype_sample
+average_meta$celltype_sample <- factor(average_meta$celltype_sample)
+average_meta$RNA_combined_celltype <- factor(average_meta$RNA_combined_celltype)
+average_meta$sample <- factor(average_meta$sample)
+# Make a heatmap using the average values from each cluster
+rna_heatmap_ave <- plot_heatmap(seurat_data, top10_rna$gene, "celltype_sample",
+                                color_list = color_list,
+                                meta_df = average_meta,
+                                plot_meta_col = FALSE,
+                                average_expression = TRUE)[[4]]
+
+
+plot_grid(rna_heatmap, rna_heatmap_ave,
+          nrow = 1, ncol = 2,
+          align = "hv",
+          axis = "tb")
+```
+
+####`r extra_pound_heatmap` **Clusters**
+1. Left, expression of DE genes in clusters. I've colored the x axis by both the cluster and the sample so you can compare.
+2. Right, expression of DE genes in clusters averaged within each cluster. I've colored bye x axis by both the cluster and the sample so you can compare.
+```{r cluster-heatmap, fig.height=20, fig.width=12, eval = FALSE}
+sample_info <- sample_list[["AT_combined"]]
+seurat_data <- sample_info$seurat_object
+save_dir <- sample_info$save_dir
+cluster_colors <- sample_info$cluster_colors
+
+# Get marker genes that are saved
+marker_genes_rna <- read.csv(file.path(save_dir,
+                                    "files/rna_markers_gene_clusters.csv"),
+                             row.names = 1)
+
+seurat_data$cluster_sample <- paste0(seurat_data$cluster_celltype, "_",
+                                      seurat_data$sample)
+
+seurat_data$cluster_sample <- factor(seurat_data$cluster_sample)
+
+meta_df <- data.frame(cluster_sample = seurat_data$cluster_sample,
+                      sample = seurat_data$sample,
+                      cluster_celltype = seurat_data$cluster_celltype)
+
+color_list <- list(sample = sample_colors,
+                   cluster_celltype = cluster_colors)
+
+# Pick out the top 10 makers of each cluster
+top10_rna <- marker_genes_rna %>% 
+  dplyr::group_by(cluster) %>% 
+  dplyr::top_n(n = 10, wt = avg_log2FC) %>%
+  dplyr::arrange(cluster)
+
+# Make a heatmap with these genes
+rna_heatmap <- plot_heatmap(seurat_data, top10_rna$gene, "cluster_sample",
+                            color_list = color_list,
+                            meta_df = meta_df,
+                            plot_meta_col = FALSE)[[4]]
+
+average_meta <- data.frame(cluster_sample = levels(meta_df$cluster_sample))
+average_meta$sample <- gsub(".*_", "", average_meta$cluster_sample)
+average_meta$cluster_celltype <- gsub("_AT.*", "",
+                                           average_meta$cluster_sample)
+
+rownames(average_meta) <- paste0("X", average_meta$cluster_sample)
+average_meta$cluster_sample <- factor(average_meta$cluster_sample)
+average_meta$cluster_celltype <- factor(average_meta$cluster_celltype)
+average_meta$sample <- factor(average_meta$sample)
+# Make a heatmap using the average values from each cluster
+rna_heatmap_ave <- plot_heatmap(seurat_data, top10_rna$gene, "cluster_sample",
+                                color_list = color_list,
+                                meta_df = average_meta,
+                                plot_meta_col = FALSE,
+                                average_expression = TRUE)[[4]]
+
+
+plot_grid(rna_heatmap, rna_heatmap_ave,
+          nrow = 1, ncol = 2,
+          align = "hv",
+          axis = "tb")
+```
