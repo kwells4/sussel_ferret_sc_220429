@@ -66,13 +66,19 @@ byrnes_colors <- c("Acinar" = "#D4405B",
                    "Prolif_ductal" = "#767FC9",
                    "undetermined" = "#D3D3D3")
 
-baron_colors <- c("Ductal" = "#A5903E")
+baron_colors <- c("ductal" = "#A5903E")
 
 tabula_muris_colors <- c("pancreatic_acinar_cell" = "#D4405B",
                          "pancreatic_stellate_cell" = "#CC6D3A",
                          "pancreatic_ductal_cell" = "#A5903E",
                          "endothelial_cell" = "#45B0CF",
                          "undetermined" = "#D3D3D3")
+
+all_colors <- c("Acinar" = "#D4405B",
+                "Ductal" = "#A5903E",
+                "ductal" = "#A5903E",
+                "Prolif_acinar" = "#55A470",
+                "Prolif_ductal" = "#767FC9")
 
 # Change to be the samples of the analysis
 sample_colors <- LaCroixColoR::lacroix_palette("Coconut", 10)

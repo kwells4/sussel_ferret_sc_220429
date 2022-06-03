@@ -206,10 +206,12 @@ if(sample_info$type == "single"){
            plot_type = "rna.umap")[[1]]
   plot2 <- plotDimRed(seurat_object,
                       col_by = "RNA_combined_celltype",
-                      plot_type = "rna.umap")[[1]]
+                      plot_type = "rna.umap",
+                      color = all_colors)[[1]]
   barplot1 <- stacked_barplots(seurat_object = seurat_object,
                                meta_col = "RNA_combined_celltype",
-                               percent = TRUE)
+                               percent = TRUE,
+                               color = all_colors)
   plot_grid(plot1, plot2, NULL, NULL, barplot1,
             labels = c("A", "B", "", "", "D"),
             align = "hv", axis = "lr",
@@ -221,11 +223,11 @@ if(sample_info$type == "single"){
                       col_by = c("RNA_celltype",
                                  "RNA_combined_celltype"),
                       plot_type = "rna.umap",
-                      color = tabula_muris_colors)
+                      color = all_colors)
   barplot1 <- stacked_barplots(seurat_object = seurat_object,
                                meta_col = "RNA_combined_celltype",
                                percent = TRUE,
-                               color = tabula_muris_colors,
+                               color = all_colors,
                                split_by = "sample")
   plot_grid(plot1, plot2[[1]], plot2[[2]], NULL, barplot1,
             labels = c("A", "B", "C", "", "D"),
