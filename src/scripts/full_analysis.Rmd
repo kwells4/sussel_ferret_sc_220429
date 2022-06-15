@@ -66,7 +66,8 @@ byrnes_colors <- c("Acinar" = "#D4405B",
                    "Prolif_ductal" = "#767FC9",
                    "undetermined" = "#D3D3D3")
 
-baron_colors <- c("ductal" = "#A5903E")
+baron_colors <- c("ductal" = "#A5903E",
+                  "acinar" = "#D4405B")
 
 tabula_muris_colors <- c("pancreatic_acinar_cell" = "#D4405B",
                          "pancreatic_stellate_cell" = "#CC6D3A",
@@ -74,11 +75,26 @@ tabula_muris_colors <- c("pancreatic_acinar_cell" = "#D4405B",
                          "endothelial_cell" = "#45B0CF",
                          "undetermined" = "#D3D3D3")
 
+qadir_colors <- c("immune_cells" = "#D3D3D3",
+                  "progenitor_like_cells" = "#297878",
+                  "transitional_to_acinar1" = "#874652",
+                  "transitional_to_acinar2" = "#CC1B3B",
+                  "centroacinar" = "#78295D",
+                  "Small_ducts" = "#B37422")
+
+muraro_colors <- c("ductal" = "#A5903E",
+                  "acinar" = "#D4405B",
+                  "undetermined" = "#D3D3D3")
+
 all_colors <- c("Acinar" = "#D4405B",
                 "Ductal" = "#A5903E",
                 "ductal" = "#A5903E",
                 "Prolif_acinar" = "#55A470",
-                "Prolif_ductal" = "#767FC9")
+                "Prolif_ductal" = "#767FC9",
+                "progenitor_like_cells" = "#297878",
+                "transitional_to_acinar1" = "#874652",
+                "transitional_to_acinar2" = "#CC1B3B",
+                "centroacinar" = "#78295D")
 
 # Change to be the samples of the analysis
 sample_colors <- LaCroixColoR::lacroix_palette("Coconut", 10)
@@ -180,6 +196,8 @@ A) The sample - again, not informative until we combine the samples
 B) The number of UMIs seen in each cell. There is some correlation between this and the UMAP. It could be technical or cell type specific. We can decided this based on the gene expression patterns.
 C) The number of genes seen in each cell. Again, there is some correlation between this and the UMAP. It could be technical or cell type specific. We can decided this based on the gene expression patterns.
 D) The percent mitochondrial reads per cell. There isn't much correlation here which is a good sign.
+
+
 ```{r "plot-umap", echo = F}
 
 umap_template <- file.path(here(),
