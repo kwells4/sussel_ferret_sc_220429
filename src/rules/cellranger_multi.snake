@@ -34,7 +34,7 @@ rule merge_fastqs:
             raw_dir = raw_dir.split(",")
             for directory in raw_dir:
                 _check_path(directory)
-                fq_paths = os.path.join(directory, sample + "*" + read + "*.fastq.gz")
+                fq_paths = os.path.join(directory, sample + "_*" + read + "*.fastq.gz")
                 fq_paths = glob.glob(os.path.abspath(fq_paths))
                 if fq_paths:
                     print(fq_paths)
