@@ -4,13 +4,15 @@ library(cowplot)
 library(harmony)
 library(here)
 library(scAnalysisR)
+library(clustree)
+
 
 # Set theme
 ggplot2::theme_set(ggplot2::theme_classic(base_size = 10))
 
 normalization_method <- "log" # can be SCT or log
 
-sample <- "sample"
+sample <- "CFKO_D2"
 
 vars.to.regress <- NULL
 
@@ -119,7 +121,7 @@ if(ADT){
 #                              plot_type = "harmony")
 
 # UMAP -------------------------------------------------------------------------
-RNA_pcs <- 28
+RNA_pcs <- 24
 ADT_pcs <- 8
 
 set.seed(0)
@@ -129,13 +131,26 @@ umap_data <- group_cells(seurat_data, sample, save_dir, nPCs = RNA_pcs,
 
 seurat_data <- umap_data$object
 
+# Test a range of resolutions
+seurat_data <- FindClusters(seurat_data, resolution = c(0.2, 0.5, 0.8, 1))
+clustree(seurat_data)
+
+# UMAP of gene expression with final resolution selelction
+set.seed(0)
+umap_data <- group_cells(seurat_data, sample, save_dir, nPCs = RNA_pcs,
+                         resolution = 1, assay = seurat_assay, HTO = HTO)
+
+seurat_data <- umap_data$object
+
 gene_plots <- umap_data$plots
 
-plotDimRed(seurat_data, col_by = "Ins1", plot_type = "rna.umap")
-plotDimRed(seurat_data, col_by = "Ins2", plot_type = "rna.umap")
-plotDimRed(seurat_data, col_by = "Gcg", plot_type = "rna.umap")
-plotDimRed(seurat_data, col_by = "Sst", plot_type = "rna.umap")
-plotDimRed(seurat_data, col_by = "tdTomato", plot_type = "rna.umap")
+seurat_data <- BuildClusterTree(seurat_data, dims = 1:RNA_pcs)
+PlotClusterTree(seurat_data)
+
+plotDimRed(seurat_data, col_by = "INSR", plot_type = "rna.umap")
+plotDimRed(seurat_data, col_by = "nFeature_RNA", plot_type = "rna.umap")
+plotDimRed(seurat_data, col_by = "percent.mt", plot_type = "rna.umap")
+
 
 if(ADT){
   if(adt_PCA){

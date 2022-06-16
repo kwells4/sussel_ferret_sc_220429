@@ -9,7 +9,7 @@ ggplot2::theme_set(ggplot2::theme_classic(base_size = 10))
 
 normalization_method <- "log" # can be SCT or log
 
-sample <- "sample"
+sample <- "WT_D14"
 
 HTO <- FALSE
 ADT <- FALSE
@@ -70,8 +70,8 @@ if(HTO){
   max_BCmetric <- max(bcmvn_sample$BCmetric)
 }
 
-# Best is PK 0.005 second is 0.08
-pK <- 0.005
+# Best is PK 0.08
+pK <- 0.08
 ## Homotypic Doublet Proportion Estimate ---------------------------------------
 annotations <- seurat_data$seurat_clusters
 homotypic.prop <- modelHomotypic(annotations) 
@@ -88,7 +88,7 @@ homotypic.prop <- modelHomotypic(annotations)
 # 6.40%	13,200	8,000
 # 7.20%	14,850	9,000
 # 8.00%	16,500	10,000
-nExp_poi <- round(0.032*nrow(seurat_data@meta.data))  
+nExp_poi <- round(0.056*nrow(seurat_data@meta.data))  
 nExp_poi.adj <- round(nExp_poi*(1-homotypic.prop))
 
 
@@ -98,7 +98,7 @@ seurat_data <- doubletFinder_v3(seurat_data, PCs = 1:10, pN = 0.25,
                                   pK = pK, nExp = nExp_poi.adj,
                                   reuse.pANN = FALSE, sct = SCT)
 
-seurat_data$Doublet_finder <- seurat_data$DF.classifications_0.25_0.005_80
+seurat_data$Doublet_finder <- seurat_data$DF.classifications_0.25_0.08_207
 
 plotDimRed(seurat_data, col_by = "Doublet_finder", plot_type = "rna.umap")
 
