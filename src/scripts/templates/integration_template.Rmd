@@ -1,0 +1,80 @@
+```{r echo = F}
+
+# Strings to match samples and create labels
+#gene <- "{{.x}}"
+sample <- "{{sample}}"
+sect_title <- sample
+
+if(!exists("extra_pound_integration")){
+  extra_pound_integration <- ""
+}
+
+sample_info <- sample_list[[sample]]
+
+```
+
+###`r extra_pound_integration` **`r sect_title`**
+
+####`r extra_pound_integration` Uncorrected UMAPs
+```{r {{sample}}-combined-umap, fig.height=12, fig.width=10, comment = FALSE, message = FALSE}
+seurat_object <- sample_info$seurat_object
+
+
+
+cluster_data <- data.frame(table(paste0(seurat_object$uncorrected_cluster,
+                                    "_", seurat_object$RNA_combined_celltype))) %>%
+  mutate(cluster = gsub("_.*", "", Var1)) %>%
+  group_by(cluster) %>%
+  add_count(wt = Freq) %>%
+  mutate(percent = Freq/n) %>%
+  slice_max(percent) %>%
+  data.frame()
+
+individual_plots <- lapply(unique(seurat_object$sample), function(x){
+  plotDimRed(seurat_object, col_by = "sample", plot_type = "rna.umap",
+             highlight_group = TRUE, group = x, meta_data_col = "sample",
+             color = sample_colors[x])[[1]]
+})
+
+if(sample == "All_combined"){
+  cowplot::plot_grid(plotlist = individual_plots, nrow = 4, ncol = 3)
+} else {
+  cowplot::plot_grid(individual_plots[[1]], individual_plots[[2]],
+                     individual_plots[[3]], individual_plots[[4]],
+                     individual_plots[[5]], NULL, NULL, NULL, NULL, NULL,
+                     nrow = 4, ncol = 3)
+}
+
+
+```
+
+####`r extra_pound_integration` Corrected UMAPs
+Batch correction was completed with `Harmony`
+
+```{r {{sample}}-corrected-umap, fig.height=12, fig.width=10, comment=FALSE, message = FALSE}
+seurat_object <- sample_info$seurat_object
+
+cluster_data <- data.frame(table(paste0(seurat_object$RNA_cluster,
+                                    "_", seurat_object$RNA_combined_celltype))) %>%
+  mutate(cluster = gsub("_.*", "", Var1)) %>%
+  group_by(cluster) %>%
+  add_count(wt = Freq) %>%
+  mutate(percent = Freq/n) %>%
+  slice_max(percent) %>%
+  data.frame()
+
+individual_plots <- lapply(unique(seurat_object$sample), function(x){
+  plotDimRed(seurat_object, col_by = "sample", plot_type = "harmony.umap",
+             highlight_group = TRUE, group = x, meta_data_col = "sample",
+             color = sample_colors[x])[[1]]
+})
+
+if(sample == "All_combined"){
+  cowplot::plot_grid(plotlist = individual_plots, nrow = 4, ncol = 3)
+} else {
+  cowplot::plot_grid(individual_plots[[1]], individual_plots[[2]],
+                     individual_plots[[3]], individual_plots[[4]],
+                     individual_plots[[5]], NULL, NULL, NULL, NULL, NULL,
+                     nrow = 4, ncol = 3)
+}
+```

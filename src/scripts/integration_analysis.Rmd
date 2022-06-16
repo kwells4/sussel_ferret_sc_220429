@@ -1,0 +1,131 @@
+---
+title: "Integration of single cell samples"
+author: "Kristen Wells"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    highlight: "tango"
+    df_print: "paged"
+    code_folding: "hide"
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = F, 
+  warning = F,
+  comment = ""
+)
+library(here)
+
+knitr::opts_knit$set(root.dir = here())
+```
+
+# Summary
+
+```{r, include = FALSE}
+library(Seurat)
+library(tidyverse)
+library(cowplot)
+library(here)
+library(scAnalysisR)
+library(knitr)
+library(LaCroixColoR)
+
+# Set theme
+ggplot2::theme_set(ggplot2::theme_classic(base_size = 10))
+
+# Sample information that also includes if it is combined or not
+samples <- list("WT_combined" = c("combined"),
+                "CFKO_combined" = c("combined"),
+                "All_combined" = c("combined"))
+
+ADT <- FALSE
+
+# Set directories
+base_dir <- here()
+
+# Change to be the cell types of the analysis
+# colors from https://medialab.github.io/iwanthue/
+byrnes_colors <- c("Acinar" = "#D4405B",
+                   "Fev_hi" = "#75B140",
+                   "Alpha" = "#885FCF",
+                   "Ductal" = "#A5903E",
+                   "Ngn3_pos" = "#C65CAC",
+                   "Prolif_acinar" = "#55A470",
+                   "Prolif_ductal" = "#767FC9",
+                   "undetermined" = "#D3D3D3")
+
+baron_colors <- c("ductal" = "#A5903E",
+                  "acinar" = "#D4405B")
+
+tabula_muris_colors <- c("pancreatic_acinar_cell" = "#D4405B",
+                         "pancreatic_stellate_cell" = "#CC6D3A",
+                         "pancreatic_ductal_cell" = "#A5903E",
+                         "endothelial_cell" = "#45B0CF",
+                         "undetermined" = "#D3D3D3")
+
+qadir_colors <- c("immune_cells" = "#D3D3D3",
+                  "progenitor_like_cells" = "#297878",
+                  "transitional_to_acinar1" = "#874652",
+                  "transitional_to_acinar2" = "#CC1B3B",
+                  "centroacinar" = "#78295D",
+                  "Small_ducts" = "#B37422")
+
+muraro_colors <- c("ductal" = "#A5903E",
+                  "acinar" = "#D4405B",
+                  "undetermined" = "#D3D3D3")
+
+all_colors <- c("Acinar" = "#D4405B",
+                "Ductal" = "#A5903E",
+                "ductal" = "#A5903E",
+                "Prolif_acinar" = "#55A470",
+                "Prolif_ductal" = "#767FC9",
+                "progenitor_like_cells" = "#297878",
+                "transitional_to_acinar1" = "#874652",
+                "transitional_to_acinar2" = "#CC1B3B",
+                "centroacinar" = "#78295D")
+
+# Change to be the samples of the analysis
+sample_colors <- LaCroixColoR::lacroix_palette("Coconut", 10)
+names(sample_colors) <- c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
+                          "CFKO_D2", "CFKO_D5", "CFKO_D7", "CFKO_D9", "CFKO_D14")
+
+# Read in all data
+sample_list <- lapply(names(samples), function(x){
+  print(x)
+  base_dir_proj <- file.path(base_dir, "results", x)
+  save_dir <- file.path(base_dir_proj, "R_analysis")
+  seurat_data <- readRDS(file.path(save_dir, "rda_obj", "seurat_processed.rds"))
+  
+  nColors <- length(unique(seurat_data$cluster_celltype))
+  cluster_colors <- grDevices::colorRampPalette(
+    RColorBrewer::brewer.pal(9, "Set1"))(nColors)
+   names(cluster_colors) <- unique(seurat_data$cluster_celltype)
+
+  return_data <- list("seurat_object" = seurat_data,
+                      "type" = samples[[x]][1],
+                      "cluster_colors" = cluster_colors,
+                      "save_dir" = save_dir)
+  
+})
+
+names(sample_list) <- names(samples)
+
+```
+
+## Integration of samples {.tabset}
+
+```{r "plot-quality", echo = F}
+integration_template <- file.path(here(),
+                                  "src/scripts/templates/integration_template.Rmd")
+
+
+integration_chunks <- names(sample_list) %>%
+  map(~knit_expand(file = integration_template, sample = .x))
+```
+
+`r knit_child(text = integration_chunks)`
