@@ -122,7 +122,7 @@ if(ADT){
 #                              plot_type = "harmony")
 
 # UMAP -------------------------------------------------------------------------
-RNA_pcs <- 31
+RNA_pcs <- 16
 ADT_pcs <- 8
 
 set.seed(0)
@@ -139,7 +139,7 @@ clustree(seurat_data)
 # UMAP of gene expression with final resolution selelction
 set.seed(0)
 umap_data <- group_cells(seurat_data, sample, save_dir, nPCs = RNA_pcs,
-                         resolution = 1, assay = seurat_assay, HTO = HTO)
+                         resolution = 0.8, assay = seurat_assay, HTO = HTO)
 
 seurat_data <- umap_data$object
 
