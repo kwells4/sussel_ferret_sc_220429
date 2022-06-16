@@ -124,6 +124,7 @@ cluster_data <- data.frame(table(paste0(seurat_data$uncorrected_cluster,
   group_by(cluster) %>%
   add_count(wt = Freq) %>%
   mutate(percent = Freq/n) %>%
+  slice_max(percent) %>%
   data.frame()
 
 # Batch correction -------------------------------------------------------------
@@ -174,6 +175,7 @@ all_data <- data.frame(table(paste0(seurat_data$RNA_cluster,
   group_by(cluster) %>%
   add_count(wt = Freq) %>%
   mutate(percent = Freq/n) %>%
+  slice_max(percent) %>%
   data.frame()
 
 all_plots_h <- plotDimRed(seurat_data, col_by = plot_values,
