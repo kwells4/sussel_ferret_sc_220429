@@ -120,14 +120,14 @@ rule all:
             "{results}/logs/{group}_cellranger_aggr_done.out",
             results = RESULTS, group = AGGR_GROUP
             ),
-        expand(
-            "{results}/logs/{sample}_velocyto_done.out",
-            results = RESULTS, sample = SAMPLES
-        ),
-        expand(
-            "{results}/logs/{group}_velocyto_combined.out",
-            results = RESULTS, group = VELOCYTO_GROUP
-            )
+        # expand(
+        #     "{results}/logs/{sample}_velocyto_done.out",
+        #     results = RESULTS, sample = SAMPLES
+        # ),
+        # expand(
+        #     "{results}/logs/{group}_velocyto_combined.out",
+        #     results = RESULTS, group = VELOCYTO_GROUP
+        #     )
 
 include: "src/rules/cellranger_multi.snake"
 include: "src/rules/velocyto.snake"
