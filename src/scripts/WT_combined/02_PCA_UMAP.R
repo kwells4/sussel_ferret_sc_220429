@@ -169,6 +169,10 @@ umap_data <- group_cells(seurat_data, sample, save_dir, nPCs = RNA_pcs,
                          resolution = 1, assay = seurat_assay, HTO = HTO,
                          reduction = "harmony")
 
+seurat_data <- umap_data$object
+
+gene_plots <- umap_data$plots
+
 all_data <- data.frame(table(paste0(seurat_data$RNA_cluster,
                          "_", seurat_data$RNA_combined_celltype))) %>%
   mutate(cluster = gsub("_.*", "", Var1)) %>%

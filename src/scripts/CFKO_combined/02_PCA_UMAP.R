@@ -131,7 +131,7 @@ cluster_data <- data.frame(table(paste0(seurat_data$uncorrected_cluster,
 
 seurat_data <- RunHarmony(seurat_data, c("sample"),
                           plot_convergence = TRUE,
-                          theta = 4, lambda = 0.8)
+                          theta = 2, lambda = 1)
 
 harmony_plots <- plotDimRed(seurat_data, col_by = "sample",
                            plot_type = "harmony")
@@ -166,8 +166,12 @@ clustree(seurat_data)
 # UMAP of gene expression
 set.seed(0)
 umap_data <- group_cells(seurat_data, sample, save_dir, nPCs = RNA_pcs,
-                         resolution = 1, assay = seurat_assay, HTO = HTO,
+                         resolution = 1.4, assay = seurat_assay, HTO = HTO,
                          reduction = "harmony")
+
+seurat_data <- umap_data$object
+
+gene_plots <- umap_data$plots
 
 all_data <- data.frame(table(paste0(seurat_data$RNA_cluster,
                          "_", seurat_data$RNA_combined_celltype))) %>%

@@ -45,4 +45,5 @@ lapply(samples, function(x){
 })
 
 openxlsx::saveWorkbook(wb = cluster_workbook,
-                       file = here("results/all_cluster_mapping.xlsx"))
+                       file = here("results/all_cluster_mapping.xlsx"),
+                       overwrite = TRUE)

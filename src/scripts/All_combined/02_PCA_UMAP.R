@@ -60,7 +60,7 @@ if(ADT){
 
 # UMAP -------------------------------------------------------------------------
 
-RNA_pcs <- 33
+RNA_pcs <- 32
 ADT_pcs <- 8
 
 seurat_data$RNA_cluster <- NULL
@@ -82,13 +82,14 @@ seurat_data <- umap_data$object
 
 gene_plots <- umap_data$plots
 
-seurat_data <- FindClusters(seurat_data, resolution = c(0.2, 0.5, 0.8, 1, 1.2))
+seurat_data <- FindClusters(seurat_data, resolution = c(0.2, 0.5, 0.8, 1,
+                                                        1.2, 1.4))
 clustree(seurat_data)
 
 # UMAP of gene expression
 set.seed(0)
 umap_data <- group_cells(seurat_data, sample, save_dir, nPCs = RNA_pcs,
-                         resolution = 0.8, assay = seurat_assay, HTO = HTO)
+                         resolution = 1.2, assay = seurat_assay, HTO = HTO)
 
 seurat_data <- umap_data$object
 
@@ -131,7 +132,7 @@ cluster_data <- data.frame(table(paste0(seurat_data$uncorrected_cluster,
 
 seurat_data <- RunHarmony(seurat_data, c("genotype"),
                           plot_convergence = TRUE,
-                          theta = 8)
+                          theta = 3)
 
 harmony_plots <- plotDimRed(seurat_data, col_by = "sample",
                            plot_type = "harmony")
@@ -166,8 +167,13 @@ clustree(seurat_data)
 # UMAP of gene expression
 set.seed(0)
 umap_data <- group_cells(seurat_data, sample, save_dir, nPCs = RNA_pcs,
-                         resolution = 1, assay = seurat_assay, HTO = HTO,
+                         resolution = 1.2, assay = seurat_assay, HTO = HTO,
                          reduction = "harmony")
+
+
+seurat_data <- umap_data$object
+
+gene_plots <- umap_data$plots
 
 all_data <- data.frame(table(paste0(seurat_data$RNA_cluster,
                          "_", seurat_data$RNA_combined_celltype))) %>%

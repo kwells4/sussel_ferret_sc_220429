@@ -36,8 +36,15 @@ individual_plots <- lapply(unique(seurat_object$sample), function(x){
              color = sample_colors[x])[[1]]
 })
 
+names(individual_plots) <- unique(seurat_object$sample)
+
 if(sample == "All_combined"){
-  cowplot::plot_grid(plotlist = individual_plots, nrow = 4, ncol = 3)
+  cowplot::plot_grid(individual_plots$WT_D2, individual_plots$WT_D5,
+                     individual_plots$WT_D7, individual_plots$CFKO_D2,
+                     individual_plots$CFKO_D5, individual_plots$CFKO_D7,
+                     individual_plots$WT_D9, individual_plots$WT_D14,
+                     NULL, individual_plots$CFKO_D9, individual_plots$CFKO_D14,
+                     NULL, nrow = 4, ncol = 3)
 } else {
   cowplot::plot_grid(individual_plots[[1]], individual_plots[[2]],
                      individual_plots[[3]], individual_plots[[4]],
@@ -69,8 +76,15 @@ individual_plots <- lapply(unique(seurat_object$sample), function(x){
              color = sample_colors[x])[[1]]
 })
 
+names(individual_plots) <- unique(seurat_object$sample)
+
 if(sample == "All_combined"){
-  cowplot::plot_grid(plotlist = individual_plots, nrow = 4, ncol = 3)
+  cowplot::plot_grid(individual_plots$WT_D2, individual_plots$WT_D5,
+                     individual_plots$WT_D7, individual_plots$CFKO_D2,
+                     individual_plots$CFKO_D5, individual_plots$CFKO_D7,
+                     individual_plots$WT_D9, individual_plots$WT_D14,
+                     NULL, individual_plots$CFKO_D9, individual_plots$CFKO_D14,
+                     NULL, nrow = 4, ncol = 3)
 } else {
   cowplot::plot_grid(individual_plots[[1]], individual_plots[[2]],
                      individual_plots[[3]], individual_plots[[4]],
