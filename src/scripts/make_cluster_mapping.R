@@ -8,7 +8,8 @@ samples <- c("CFKO_D2", "CFKO_D5", "CFKO_D7", "CFKO_D9", "CFKO_D14",
 
 celltypes <- c("RNA_celltype_byrnes", "RNA_baron_celltype",
                "RNA_tabula_muris_celltype", "RNA_baron_human_celltype",
-               "RNA_qadir_celltype", "RNA_muraro_celltype")
+               "RNA_qadir_celltype", "RNA_muraro_celltype",
+               "RNA_krentz_celltype", "RNA_combined_celltype")
 
 base_dir <- here()
 

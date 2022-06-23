@@ -244,4 +244,17 @@ if(ADT){
                           plot_type = "wnn.umap")
 }
 
+plotDimRed(seurat_data, "INS", plot_type = "rna.umap")
+plotDimRed(seurat_data, "GCG", plot_type = "rna.umap")
+plotDimRed(seurat_data, "SST", plot_type = "rna.umap")
+plotDimRed(seurat_data, "NEUROG3", plot_type = "rna.umap")
+
+
+all_genes <- rownames(seurat_data)
+
+all_genes[grepl("INS", all_genes)]
+all_genes[grepl("GCG", all_genes)]
+all_genes[grepl("SST", all_genes)]
+all_genes[grepl("NEUROG3", all_genes)]
+
 saveRDS(seurat_data, file.path(save_dir, "rda_obj/seurat_processed.rds"))

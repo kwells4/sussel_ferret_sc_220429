@@ -373,6 +373,68 @@ if(sample_info$type == "single"){
 }
 ```
 
+#### Reference 7
+
+Next I looked into human references. I used the hESC samples from [Single-Cell Transcriptome Profiling of Mouse and hESC-Derived Pancreatic Progenitors](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6294286/)
+
+
+Cell types in the reference are:
+```{r}
+all_ref_dir <-
+  "/Users/wellskr/Documents/Analysis/references/single_cell_references"
+
+# Information for cell mapping
+ref_dir <- file.path(all_ref_dir, "pancreas/krentz_2018_human_mouse")
+
+ref_mat <- read.csv(file.path(ref_dir,
+                              "S6D1_GFP_clustifyr_reference_celltype.csv"),
+                    header = TRUE, row.names = 1)
+
+print(colnames(ref_mat))
+```
+
+A) UMAP colored by clusters
+B) UMAP colored by cell type defined within each individual sample
+C) UMAP colored by cell type defined when the samples are combined  (this will show up after we combine samples.)
+D) Barplot showing the percent of cells that were assigned to each cell type. 
+
+```{r {{sample}}-celltype-seven, fig.height=8, fig.width=8}
+seurat_object <- sample_info$seurat_object
+
+if(sample_info$type == "single"){
+  plot1 <- plotDimRed(seurat_object, col_by = "RNA_cluster",
+           plot_type = "rna.umap")[[1]]
+  plot2 <- plotDimRed(seurat_object,
+                      col_by = "RNA_krentz_celltype", plot_type = "rna.umap",
+                      color = krentz_colors)[[1]]
+  barplot1 <- stacked_barplots(seurat_object = seurat_object,
+                               meta_col = "RNA_krentz_celltype",
+                               percent = TRUE,
+                               color = krentz_colors)
+  plot_grid(plot1, plot2, NULL, NULL, barplot1,
+            labels = c("A", "B", "", "", "D"),
+            align = "hv", axis = "lr",
+            nrow = 3, ncol = 2)
+} else {
+  plot1 <- plotDimRed(seurat_object, col_by = "uncorrected_cluster",
+           plot_type = "rna.umap")[[1]]
+  plot2 <- plotDimRed(seurat_object,
+                      col_by = c("RNA_celltype",
+                                 "RNA_combined_celltype"),
+                      plot_type = "rna.umap",
+                      color = krentz_colors)
+  barplot1 <- stacked_barplots(seurat_object = seurat_object,
+                               meta_col = "RNA_combined_celltype",
+                               percent = TRUE,
+                               color = krentz_colors,
+                               split_by = "sample")
+  plot_grid(plot1, plot2[[1]], plot2[[2]], NULL, barplot1,
+            labels = c("A", "B", "C", "", "D"),
+            align = "hv", axis = "lr",
+            nrow = 3, ncol = 2)
+}
+```
+
 #### Combined reference
 Finally, I found the highest correlation from each cluster with any of the reference cell types and used those to define the combined cluster.
 

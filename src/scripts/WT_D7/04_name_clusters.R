@@ -249,7 +249,43 @@ plotDimRed(seurat_data, col_by = "RNA_muraro_celltype",
            plot_type = "rna.umap")
 
 write.csv(seurat_res_muraro,
-          file.path(save_dir, "files/celltype_mapping_qadir_2020.csv"))
+          file.path(save_dir, "files/celltype_mapping_muraro_2016.csv"))
+
+
+#-------------------------------------------------------------------------------
+
+########################
+# Pancreas development #
+########################
+
+# Information for cell mapping
+ref_dir <- file.path(all_ref_dir, "pancreas/krentz_2018_human_mouse")
+
+ref_mat <- read.csv(file.path(ref_dir,
+                              "S6D1_GFP_clustifyr_reference_celltype.csv"),
+                    header = TRUE, row.names = 1)
+
+cluster_res <- clustifyr_orthologs(seurat_data, ref_mat,
+                                   save_dir = save_dir,
+                                   save_name = "krentz_celltype",
+                                   mapping_file = mapping_file,
+                                   mapping_gene_col = "gene_id",
+                                   mapping_ortholog_col = "Human.gene.name",
+                                   assay = "RNA",
+                                   nfeatures = 2500, clusters = "RNA_cluster",
+                                   plot_type = "rna.umap",
+                                   cor_cutoff = cor_cutoff)
+
+
+seurat_data <- cluster_res$object
+
+seurat_res_krentz <- cluster_res$RNA
+
+plotDimRed(seurat_data, col_by = "RNA_krentz_celltype",
+           plot_type = "rna.umap")
+
+write.csv(seurat_res_krentz,
+          file.path(save_dir, "files/celltype_mapping_krentz_2018_2020.csv"))
 
 
 
@@ -265,7 +301,8 @@ colnames(seurat_res_baron_human) <- paste0(colnames(seurat_res_baron_human), "_h
 
 full_res <- cbind(cbind(seurat_res_baron, seurat_res_byrnes),
                   seurat_res_tabula_muris, seurat_res_baron_human,
-                  seurat_res_qadir, seurat_res_muraro)
+                  seurat_res_qadir, seurat_res_muraro,
+                  seurat_res_krentz)
 
 seurat_cluster <- cor_to_call(full_res) %>% 
   mutate(type = ifelse(r < cor_cutoff, "undetermined", type))
@@ -285,12 +322,13 @@ seurat_data$RNA_combined_celltype <- gsub("_m$", "",
                                           seurat_data$RNA_combined_celltype)
 seurat_data$RNA_combined_celltype <- gsub("Acinar", "acinar",
                                           seurat_data$RNA_combined_celltype)
+
 seurat_data$RNA_combined_celltype <- gsub("Ductal", "ductal",
                                           seurat_data$RNA_combined_celltype)
 
+
 plotDimRed(seurat_data, col_by = "RNA_combined_celltype",
            plot_type = "rna.umap")
-
 
 #-------------------------------------------------------------------------------
 

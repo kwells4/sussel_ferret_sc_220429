@@ -86,6 +86,10 @@ muraro_colors <- c("ductal" = "#A5903E",
                   "acinar" = "#D4405B",
                   "undetermined" = "#D3D3D3")
 
+krentz_colors <- c("AFP" = "#5C6AE0",
+                   "Endo1" = "#45B0CF",
+                   "undetermined" = "#D3D3D3")
+
 all_colors <- c("Acinar" = "#D4405B",
                 "Ductal" = "#A5903E",
                 "ductal" = "#A5903E",
