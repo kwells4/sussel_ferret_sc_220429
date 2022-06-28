@@ -14,3 +14,12 @@ src/scripts/*/06*
 websummaries*
 files/*.csv
 src/scripts/*.html
+*.rds
+src/scripts/CFKO_D14/gene_plots.R
+src/scripts/CFKO_D7/gene_plots.R
+src/scripts/CFKO_D9/gene_plots.R
+src/scripts/WT_D14/gene_plots.R
+src/scripts/WT_D2/gene_plots.R
+src/scripts/WT_D5/gene_plots.R
+src/scripts/WT_D7/gene_plots.R
+src/scripts/WT_D9/gene_plots.R
