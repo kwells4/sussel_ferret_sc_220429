@@ -250,3 +250,46 @@ find_write_markers_pairwise_ortj <- function(seurat_object, save_dir,
   
   return(marker_genes)
 }
+
+make_plots <- function(seurat_object, cluster_name, celltype_name,
+                       cluster_colors, celltype_colors, gene,
+                       assay = "RNA", plot_type = "rna.umap",
+                       save_name = NULL){
+  
+  violin1 <- featDistPlot(seurat_object, gene, sep_by = celltype_name,
+                          col_by = celltype_name, color = celltype_colors,
+                          assay = assay)
+  
+  
+  umap1 <- plotDimRed(seurat_object, col_by = gene, plot_type = plot_type,
+                      assay = assay)[[1]]
+  
+  umap3 <- plotDimRed(seurat_object, col_by = celltype_name,
+                      plot_type = plot_type, color = celltype_colors)[[1]]
+  
+  umap2 <- NULL
+  umap4 <- plotDimRed(seurat_object, col_by = cluster_name,
+                      plot_type = plot_type, color = cluster_colors)[[1]]
+  violin2 <- featDistPlot(seurat_object, gene, sep_by = cluster_name,
+                          col_by = cluster_name, color = cluster_colors,
+                          assay = assay)
+  text_labels <- c("A", "", "B", "C", "D", "E")
+  
+  
+  full_plot <- plot_grid(umap1, umap2,
+                         umap3, violin1,
+                         umap4, violin2,
+                         labels = text_labels,
+                         nrow = 3,
+                         ncol = 2,
+                         align = "hv",
+                         axis = "l")
+  
+  if(!is.null(save_name)){
+    pdf(save_name, height = 10, width = 10)
+    print(full_plot)
+    dev.off()
+  }
+  return(full_plot)
+  
+}
