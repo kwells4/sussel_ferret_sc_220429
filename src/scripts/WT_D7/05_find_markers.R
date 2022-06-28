@@ -43,6 +43,18 @@ seurat_data <- readRDS(file.path(save_dir, "rda_obj", "seurat_processed.rds"))
 
 mapping_file <- read.csv(here("files/species_mapping_file.csv"))
 
+gene_path <- here("files/GSEA_signaling_pathways_with_orthologs.xlsx")
+
+all_sheets <- openxlsx::getSheetNames(gene_path)
+
+gene_lists <- lapply(all_sheets, function(x){
+  gene_df <- openxlsx::readWorkbook(gene_path, sheet = x)
+  return(unique(gene_df$gene_id))
+})
+
+names(gene_lists) <- all_sheets
+
+
 # Combined ---------------------------------------------------------------------
 
 ## Cell type DE ----------------------------------------------------------------
@@ -58,7 +70,8 @@ marker_list <- find_write_markers_orthologs(seurat_object = seurat_data,
                                   mapping_ortholog_col = c("Mouse.gene.name",
                                                            "Human.gene.name",
                                                            "Dog.gene.name",
-                                                           "Pig.gene.name"))
+                                                           "Pig.gene.name"),
+                                  gene_lists = gene_lists)
 
 if(ADT){
   marker_list <- find_write_markers_orthologs(seurat_object = seurat_data,
@@ -85,7 +98,8 @@ marker_list <- find_write_markers_orthologs(seurat_object = seurat_data,
                                   mapping_ortholog_col = c("Mouse.gene.name",
                                                            "Human.gene.name",
                                                            "Dog.gene.name",
-                                                           "Pig.gene.name"))
+                                                           "Pig.gene.name"),
+                                  gene_lists = gene_lists)
 
 if(ADT){
   marker_list <- find_write_markers_orthologs(seurat_object = seurat_data,
@@ -111,7 +125,8 @@ marker_list <- find_write_markers_orthologs(seurat_object = seurat_data,
                                             mapping_ortholog_col = c("Mouse.gene.name",
                                                                      "Human.gene.name",
                                                                      "Dog.gene.name",
-                                                                     "Pig.gene.name"))
+                                                                     "Pig.gene.name"),
+                                            gene_lists = gene_lists)
 
 if(ADT){
   marker_list <- find_write_markers_orthologs(seurat_object = seurat_data,
@@ -138,7 +153,8 @@ marker_list <- find_write_markers_orthologs(seurat_object = seurat_data,
                                             mapping_ortholog_col = c("Mouse.gene.name",
                                                                      "Human.gene.name",
                                                                      "Dog.gene.name",
-                                                                     "Pig.gene.name"))
+                                                                     "Pig.gene.name"),
+                                            gene_lists = gene_lists)
 
 if(ADT){
   marker_list <- find_write_markers_orthologs(seurat_object = seurat_data,
