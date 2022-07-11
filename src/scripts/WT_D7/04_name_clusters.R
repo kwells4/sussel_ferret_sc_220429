@@ -22,6 +22,7 @@ all_ref_dir <-
 HTO <- FALSE
 ADT <- FALSE
 cor_cutoff <- 0.4
+krentz_cor_cutoff <- 0.3
 
 if(normalization_method == "SCT"){
   SCT <- TRUE
@@ -274,7 +275,7 @@ cluster_res <- clustifyr_orthologs(seurat_data, ref_mat,
                                    assay = "RNA",
                                    nfeatures = 2500, clusters = "RNA_cluster",
                                    plot_type = "rna.umap",
-                                   cor_cutoff = cor_cutoff)
+                                   cor_cutoff = krentz_cor_cutoff)
 
 
 seurat_data <- cluster_res$object
