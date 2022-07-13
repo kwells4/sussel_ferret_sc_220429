@@ -275,7 +275,8 @@ rule cellranger_count:
                     --id={wildcards.sample} \
                     --csv=$sample_csv \
                     --jobmode={params.lsf} \
-                    --maxjobs={params.max_jobs}
+                    --maxjobs={params.max_jobs} \
+                    --include-introns
                 """
                 )
         # Run cellranger count for CITE-seq and gene expression
@@ -293,7 +294,8 @@ rule cellranger_count:
                     --feature-ref=$ab_csv \
                     --transcriptome={params.genome} \
                     --jobmode={params.lsf} \
-                    --maxjobs={params.max_jobs}
+                    --maxjobs={params.max_jobs} \
+                    --include-introns
                 """
             )
 
@@ -310,7 +312,8 @@ rule cellranger_count:
                     --libraries=$sample_csv \
                     --transcriptome={params.genome} \
                     --jobmode={params.lsf} \
-                    --maxjobs={params.max_jobs}
+                    --maxjobs={params.max_jobs} \
+                    --include-introns
                 """
             )
 
