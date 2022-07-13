@@ -58,27 +58,27 @@ names(gene_lists) <- all_sheets
 
 ## Cell type DE ----------------------------------------------------------------
 
-# marker_list <- find_write_markers_orthologs(seurat_object = seurat_data,
-#                                   meta_col = cell_types,
-#                                   pval = pval,
-#                                   logfc = logfc,
-#                                   assay = "RNA",
-#                                   save_dir = save_dir,
-#                                   mapping_file = mapping_file,
-#                                   mapping_gene_col = "gene_id",
-#                                   mapping_ortholog_col = c("Mouse.gene.name",
-#                                                            "Human.gene.name",
-#                                                            "Dog.gene.name",
-#                                                            "Pig.gene.name"))
-# 
-# if(ADT){
-#   marker_list <- find_write_markers_orthologs(seurat_object = seurat_data,
-#                                     meta_col = cell_types,
-#                                     pval = pval,
-#                                     logfc = logfc,
-#                                     assay = "ADT",
-#                                     save_dir = save_dir)
-# }
+marker_list <- find_write_markers_orthologs(seurat_object = seurat_data,
+                                  meta_col = cell_types,
+                                  pval = pval,
+                                  logfc = logfc,
+                                  assay = "RNA",
+                                  save_dir = save_dir,
+                                  mapping_file = mapping_file,
+                                  mapping_gene_col = "gene_id",
+                                  mapping_ortholog_col = c("Mouse.gene.name",
+                                                           "Human.gene.name",
+                                                           "Dog.gene.name",
+                                                           "Pig.gene.name"))
+
+if(ADT){
+  marker_list <- find_write_markers_orthologs(seurat_object = seurat_data,
+                                    meta_col = cell_types,
+                                    pval = pval,
+                                    logfc = logfc,
+                                    assay = "ADT",
+                                    save_dir = save_dir)
+}
 
 ## RNA cluster DE --------------------------------------------------------------
 
