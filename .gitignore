@@ -23,3 +23,7 @@ src/scripts/WT_D2/gene_plots.R
 src/scripts/WT_D5/gene_plots.R
 src/scripts/WT_D7/gene_plots.R
 src/scripts/WT_D9/gene_plots.R
+results_introns/*/*
+!results_introns/*/outs/
+results_introns/*/outs/*
+!results_introns/*/outs/web_summary.html

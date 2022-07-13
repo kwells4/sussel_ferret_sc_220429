@@ -59,7 +59,7 @@ VDJ_SAMPLES:
 
 # Path to the output directory.
 RESULTS:
-    "results"
+    "results_introns"
 
 # Path to the Cell Ranger genome reference.
 GENOME:
@@ -88,3 +88,7 @@ CHEMISTRY:
     
 
 VELOCYTO_GROUP:
+
+# Path to sandbox folder for data upload
+SANDBOX:
+    "amc-sandbox.ucdenver.edu://data/home/wellskri/public_html/lori_sussel/ferret"

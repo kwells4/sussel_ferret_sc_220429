@@ -14,20 +14,21 @@ from collections import defaultdict
 
 
 # Parameters from config.yaml
-RAW_DATA     = config["RAW_DATA"]
-SAMPLES      = config["SAMPLES"]
-RNA_SAMPLES  = config["RNA_SAMPLES"]
-ADT_SAMPLES  = config["ADT_SAMPLES"]
-VDJ_SAMPLES  = config["VDJ_SAMPLES"]
-RESULTS      = config["RESULTS"]
-GENOME       = config["GENOME"]
-ADT_REF      = config["ADT_REF"]
-VDJ_REF      = config["VDJ_REF"]
-MAX_JOBS     = config["MAX_JOBS"]
-LSF_TEMPLATE = config["LSF_TEMPLATE"]
-AGGR_GROUP   = config["AGGR_SAMPLES"]
-CHEMISTRY    = config["CHEMISTRY"]
+RAW_DATA       = config["RAW_DATA"]
+SAMPLES        = config["SAMPLES"]
+RNA_SAMPLES    = config["RNA_SAMPLES"]
+ADT_SAMPLES    = config["ADT_SAMPLES"]
+VDJ_SAMPLES    = config["VDJ_SAMPLES"]
+RESULTS        = config["RESULTS"]
+GENOME         = config["GENOME"]
+ADT_REF        = config["ADT_REF"]
+VDJ_REF        = config["VDJ_REF"]
+MAX_JOBS       = config["MAX_JOBS"]
+LSF_TEMPLATE   = config["LSF_TEMPLATE"]
+AGGR_GROUP     = config["AGGR_SAMPLES"]
+CHEMISTRY      = config["CHEMISTRY"]
 VELOCYTO_GROUP = config["VELOCYTO_GROUP"]
+SANDBOX        = config["SANDBOX"]
 
 # Function to check paths for input files/directories
 def _check_path(path):
@@ -120,6 +121,11 @@ rule all:
             "{results}/logs/{group}_cellranger_aggr_done.out",
             results = RESULTS, group = AGGR_GROUP
             ),
+        # Make bigwigs
+        expand(
+            "{results}/bigwig_trim/transfer_done.txt",
+            results = RESULTS
+            )
         # expand(
         #     "{results}/logs/{sample}_velocyto_done.out",
         #     results = RESULTS, sample = SAMPLES
@@ -131,3 +137,4 @@ rule all:
 
 include: "src/rules/cellranger_multi.snake"
 include: "src/rules/velocyto.snake"
+include: "src/rules/make_bigwig.snake"

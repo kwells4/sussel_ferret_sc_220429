@@ -1,0 +1,46 @@
+# This runs bamCoverage from deeptools to make bigwig files
+
+rule make_bigwig:
+	input: 
+		"{results}/logs/{sample}_count_done.out"
+	output:
+		"{results}/bigwig/{sample}_Aligned.bw"
+	params:
+		job_name  = "{sample}_bigwig",
+		memory    = "select[mem>40] rusage[mem=40]",
+		bam_input = "{results}/{sample}/outs/possorted_genome_bam.bam"
+	threads:
+		8
+	log:
+		"{results}/logs/bigwig_{sample}"
+	shell:
+		'''
+		bamCoverage -b {params.bam_input} \
+			-o {output} \
+			--minMappingQuality 255 \
+			--normalizeUsing RPKM \
+			-p max/2 \
+			--binSize 5
+	    '''
+
+
+rule bigwig_to_sandbox:
+	input:
+		expand(
+			"{results}/bigwig/{sample}_Aligned.bw",
+			results = RESULTS, sample = SAMPLES
+			)
+	output:
+		"{results}/bigwig_trim/transfer_done.txt"
+	params:
+		input_dir = "{results}/bigwig/",
+		sandbox   = SANDBOX,
+		job_name  = "transfer_files",
+		memory    = "select[mem>40] rusage[mem=40]"
+	log:
+		"{results}/logs/bigwig_transfer"
+	shell:
+		'''
+		rsync -avz {params.input_dir} {params.sandbox}
+		ls > {output}
+		'''
