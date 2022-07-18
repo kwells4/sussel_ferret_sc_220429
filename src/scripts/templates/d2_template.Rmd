@@ -1,0 +1,42 @@
+```{r echo = F}
+
+# Strings to match samples and create labels
+#gene <- "{{.x}}"
+reference <- "{{reference}}"
+sect_title <- reference
+
+if(!exists("extra_pound_d2_celltype")){
+  extra_pound_d2_celltype <- ""
+}
+
+
+```
+
+###`r extra_pound_d2_celltype` **`r sect_title`**
+Below are plots of cell types when called on the samples individually (A) and cell types when called on the merged samples (B).
+
+```{r {{reference}}-d2_celltype, fig.height=4, fig.width=8}
+color_list <- cell_type_names[[reference]]
+  
+plots <- plotDimRed(seurat_data, col_by = c(color_list[[1]], color_list[[2]]),
+           plot_type = "rna.umap", color = color_list[[3]])
+
+plot_grid(plotlist = plots,
+          labels = c("A", "B"),
+          align = "hv", axis = "lr",
+          nrow = 1, ncol = 2)
+```
+
+Below shows how well the samples overlap where the rows indicate the cell type in the analysis of the sample alone and the columns are the cell type in the combined analysis.
+```{r}
+individual_sample <- seurat_data[[color_list[[1]]]][[1]]
+combined_samples <- seurat_data[[color_list[[2]]]][[1]]
+
+# all_celltypes <- unique(c(individual_sample, combined_samples))
+# 
+# individual_sample <- factor(individual_sample, levels = all_celltypes)
+# combined_samples <- factor(combined_samples, levels = all_celltypes)
+
+
+table(individual_sample, combined_samples)
+```

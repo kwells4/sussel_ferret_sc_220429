@@ -1,0 +1,448 @@
+---
+title: "Analysis of single cell ferret pancreatic ductal differentiation"
+author: "Kristen Wells"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    highlight: "tango"
+    df_print: "paged"
+    code_folding: "hide"
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = F, 
+  warning = F,
+  comment = ""
+)
+library(here)
+
+knitr::opts_knit$set(root.dir = here())
+```
+
+# Summary
+
+```{r, include = FALSE}
+library(Seurat)
+library(tidyverse)
+library(cowplot)
+library(here)
+library(scAnalysisR)
+library(knitr)
+library(LaCroixColoR)
+
+# Set theme
+ggplot2::theme_set(ggplot2::theme_classic(base_size = 10))
+
+# Sample information that also includes if it is combined or not
+samples <- list("WT_D2" = c("single"),
+                "WT_D5" = c("single"),
+                "WT_D7" = c("single"),
+                "WT_D9" = c("single"),
+                "WT_D14" = c("single"),
+                "CFKO_D2" = c("single"),
+                "CFKO_D5" = c("single"),
+                "CFKO_D7" = c("single"),
+                "CFKO_D9" = c("single"),
+                "CFKO_D14" = c("single"))
+
+ADT <- FALSE
+
+# Set directories
+base_dir <- here()
+
+# Change to be the cell types of the analysis
+# colors from https://medialab.github.io/iwanthue/
+byrnes_colors <- c("Acinar" = "#D4405B",
+                   "Fev_hi" = "#75B140",
+                   "Alpha" = "#885FCF",
+                   "Ductal" = "#A5903E",
+                   "Ngn3_pos" = "#C65CAC",
+                   "Prolif_acinar" = "#55A470",
+                   "Prolif_ductal" = "#767FC9",
+                   "undetermined" = "#D3D3D3")
+
+baron_colors <- c("ductal" = "#A5903E",
+                  "acinar" = "#D4405B")
+
+tabula_muris_colors <- c("pancreatic_acinar_cell" = "#D4405B",
+                         "pancreatic_stellate_cell" = "#CC6D3A",
+                         "pancreatic_ductal_cell" = "#A5903E",
+                         "endothelial_cell" = "#45B0CF",
+                         "undetermined" = "#D3D3D3")
+
+qadir_colors <- c("immune_cells" = "#D3D3D3",
+                  "progenitor_like_cells" = "#297878",
+                  "transitional_to_acinar1" = "#874652",
+                  "transitional_to_acinar2" = "#CC1B3B",
+                  "centroacinar" = "#78295D",
+                  "Small_ducts" = "#B37422")
+
+muraro_colors <- c("ductal" = "#A5903E",
+                  "acinar" = "#D4405B",
+                  "undetermined" = "#D3D3D3")
+
+krentz_colors <- c("AFP" = "#5C6AE0",
+                   "Endo1" = "#45B0CF",
+                   "undetermined" = "#D3D3D3")
+
+all_colors <- c("Acinar" = "#D4405B",
+                "Ductal" = "#A5903E",
+                "ductal" = "#A5903E",
+                "Prolif_acinar" = "#55A470",
+                "Prolif_ductal" = "#767FC9",
+                "progenitor_like_cells" = "#297878",
+                "transitional_to_acinar1" = "#874652",
+                "transitional_to_acinar2" = "#CC1B3B",
+                "centroacinar" = "#78295D")
+
+# Sample colors
+sample_colors <- as.character(LaCroixColoR::lacroix_palette("Coconut", 10))
+sample_colors[5] <- "#F4E3C7"
+names(sample_colors) <- c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
+                          "CFKO_D14", "CFKO_D9", "CFKO_D7", "CFKO_D5", "CFKO_D2")
+sample_colors <- sample_colors[c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
+                          "CFKO_D2", "CFKO_D5", "CFKO_D7", "CFKO_D9", "CFKO_D14")]
+
+# Read in all data
+sample_list <- lapply(names(samples), function(x){
+  print(x)
+  base_dir_proj <- file.path(base_dir, "results", x)
+  save_dir <- file.path(base_dir_proj, "R_analysis")
+  seurat_data <- readRDS(file.path(save_dir, "rda_obj", "seurat_processed.rds"))
+  unprocessed_path <- file.path(save_dir, "rda_obj", "seurat_unfilt.rds")
+  doublet_path <- file.path(save_dir, "rda_obj", "seurat_doublet.rds")
+  
+  nColors <- length(unique(seurat_data$cluster_celltype))
+  cluster_colors <- grDevices::colorRampPalette(
+    RColorBrewer::brewer.pal(9, "Set1"))(nColors)
+   names(cluster_colors) <- unique(seurat_data$cluster_celltype)
+
+  return_data <- list("seurat_object" = seurat_data,
+                      "seurat_unprocessed_path" = unprocessed_path,
+                      "seurat_doublet_path" = doublet_path,
+                      "type" = samples[[x]][1],
+                      "cluster_colors" = cluster_colors,
+                      "save_dir" = save_dir)
+  
+})
+
+names(sample_list) <- names(samples)
+
+```
+
+## Quality control {.tabset}
+I first check the quality of all samples by looking at the number of reads per cell, the number of features (genes) per cell, and the percent mitochondrial genes per cell. In cases where the cells were dying, we generally see a higher percent mitochondria. I like to see that most cells have less than 10% of reads mapping to mitochondrial reads. The mitochondrial percent was pretty high on most of your samples, so I set the cutoff at 20%
+
+Here it seems that most cells look pretty good. You have ~4,000-5,000 genes per cell. One thing that is a bit strange is that all samples have a second set of cells with around 2,000 genes/cell. This is high enough that I don't want to filter it out in case they are interesting (for example, T cells sometimes have fewer genes/cell than other cells), but in all samples I do see a low quality cluster (look at the UMAPs below), so we may consider filtering these out.
+
+For the moment, all filters are set at the same levels because I wanted to be as consistent as possible with these samples. We may need to go back and change that though.
+
+My filters:
+* Percent mitocondria less than 20%
+* Number of genes (nFeatureRNA) between 1000 and 8000
+
+```{r "plot-quality", echo = F}
+if(ADT){
+  quality_template <- file.path(here(),
+                              "src/scripts/templates/quality_template_ADT.Rmd")
+} else{
+quality_template <- file.path(here(),
+                              "src/scripts/templates/quality_template.Rmd")  
+}
+
+quality_chunks <- names(sample_list) %>%
+  map(~knit_expand(file = quality_template, sample = .x))
+```
+
+`r knit_child(text = quality_chunks)`
+
+## Doublet Removal {.tabset}
+I next identify likely doublets using `DoubletFinder` which attempts to model what doublets would look like based on a mixing of the different clusters. The doublets identified are shown below. I filter these out before continuing the analysis.
+
+```{r "plot-doublet", echo = F}
+
+doublet_template <- file.path(here(),
+                              "src/scripts/templates/doublet_template.Rmd")
+
+sample_doublet <- samples[samples == "single"]
+
+doublet_chunks <- names(sample_doublet) %>%
+  map(~knit_expand(file = doublet_template, sample = .x))
+```
+
+`r knit_child(text = doublet_chunks)`
+
+## PCA {.tabset}
+I next do an initial dimensional reduction with using PCA on the top 2000 variable genes. The PCA is not too informative, but it's worth looking at a few metrics.
+
+A) The sample - this will be more interesting once I combine the samples.
+B) The number of UMIs seen in each cell. There is some correlation between this and PC1 so we will need to make sure this isn't captured when we make a UMAP.
+C) The number of genes seen in each cell. Again, there is some correlation between this and PC1 so we will need to make sure this isn't captured when we make a UMAP.
+D) The percent mitochondrial reads per cell. We don't want to see much correlation between this and either of the PCs.
+```{r "plot-pca", echo = F}
+
+pca_template <- file.path(here(),
+                          "src/scripts/templates/pca_template.Rmd")
+
+pca_chunks <- names(sample_list) %>%
+  map(~knit_expand(file = pca_template, sample = .x))
+```
+
+`r knit_child(text = pca_chunks)`
+
+## UMAP {.tabset}
+
+I next follow the PCA with a UMAP dimensional reduction. Rather than use genes for UMAP, we use the top PCs (~30 for all of these samples). I'll plot the same metrics for UMAP as for the PCA.
+
+A) The sample - again, not informative until we combine the samples
+B) The number of UMIs seen in each cell. There is some correlation between this and the UMAP. It could be technical or cell type specific. We can decided this based on the gene expression patterns.
+C) The number of genes seen in each cell. Again, there is some correlation between this and the UMAP. It could be technical or cell type specific. We can decided this based on the gene expression patterns.
+D) The percent mitochondrial reads per cell. There isn't much correlation here which is a good sign.
+
+
+```{r "plot-umap", echo = F}
+
+umap_template <- file.path(here(),
+                           "src/scripts/templates/umap_template.Rmd")
+
+umap_chunks <- names(sample_list) %>%
+  map(~knit_expand(file = umap_template, sample = .x))
+```
+
+`r knit_child(text = umap_chunks)`
+
+## Celltypes {.tabset}
+I named celltypes based using `clustifyr` which uses a reference dataset to name clusters. First, I used the mouse orthologs to rename all gene names. Then, average expression was found for each cluster in the reference dataset, then a correlation was run between the reference cluster and our clusters. I used three different references and then combined them based on the top correlation for each cluster.
+
+```{r "plot-celltype", echo = F}
+
+celltype_template <- file.path(here(),
+                           "src/scripts/templates/celltype_template.Rmd")
+
+celltype_chunks <- names(sample_list) %>%
+  map(~knit_expand(file = celltype_template, sample = .x))
+```
+
+`r knit_child(text = celltype_chunks)`
+
+
+```{r}
+rm(sample_list)
+```
+
+# All samples integration
+Based on the integration below, it does seem like there are progressive differences with each time point. Because we do see these differences, I think using an pseudotime method that takes this into account will do the best job of leveraging our dataset and giving the most accurate results. I've been searching around and found [psupertime: supervised pseudotime analysis for time-series single-cell RNA-seq data](https://academic.oup.com/bioinformatics/article/38/Supplement_1/i290/6617492?login=true). This seems like it could be a promising approach.
+
+Before I fully take this approach, I want to make sure of a couple of things.
+
+1. The cell type naming is correct (or as correct as possible)
+  * We can all check this by looking through the gene lists
+2. All cell types in the analysis are directly related
+  * Psudotime methods will try to find connections between all cells in the analysis weather they are real or not. It is best to remove unrelated cells before trying a pseudotime analysis.
+
+```{r, include = FALSE}
+library(Seurat)
+library(tidyverse)
+library(cowplot)
+library(here)
+library(scAnalysisR)
+library(knitr)
+library(LaCroixColoR)
+
+# Set theme
+ggplot2::theme_set(ggplot2::theme_classic(base_size = 10))
+
+# Sample information that also includes if it is combined or not
+samples <- list("WT_combined" = c("combined"),
+                "CFKO_combined" = c("combined"),
+                "All_combined" = c("combined"))
+
+ADT <- FALSE
+
+# Set directories
+base_dir <- here()
+
+# Change to be the cell types of the analysis
+# colors from https://medialab.github.io/iwanthue/
+byrnes_colors <- c("Acinar" = "#D4405B",
+                   "Fev_hi" = "#75B140",
+                   "Alpha" = "#885FCF",
+                   "Ductal" = "#A5903E",
+                   "Ngn3_pos" = "#C65CAC",
+                   "Prolif_acinar" = "#55A470",
+                   "Prolif_ductal" = "#767FC9",
+                   "undetermined" = "#D3D3D3")
+
+baron_colors <- c("ductal" = "#A5903E",
+                  "acinar" = "#D4405B")
+
+tabula_muris_colors <- c("pancreatic_acinar_cell" = "#D4405B",
+                         "pancreatic_stellate_cell" = "#CC6D3A",
+                         "pancreatic_ductal_cell" = "#A5903E",
+                         "endothelial_cell" = "#45B0CF",
+                         "undetermined" = "#D3D3D3")
+
+qadir_colors <- c("immune_cells" = "#D3D3D3",
+                  "progenitor_like_cells" = "#297878",
+                  "transitional_to_acinar1" = "#874652",
+                  "transitional_to_acinar2" = "#CC1B3B",
+                  "centroacinar" = "#78295D",
+                  "Small_ducts" = "#B37422")
+
+muraro_colors <- c("ductal" = "#A5903E",
+                  "acinar" = "#D4405B",
+                  "undetermined" = "#D3D3D3")
+
+all_colors <- c("Acinar" = "#D4405B",
+                "Ductal" = "#A5903E",
+                "ductal" = "#A5903E",
+                "Prolif_acinar" = "#55A470",
+                "Prolif_ductal" = "#767FC9",
+                "progenitor_like_cells" = "#297878",
+                "transitional_to_acinar1" = "#874652",
+                "transitional_to_acinar2" = "#CC1B3B",
+                "centroacinar" = "#78295D")
+
+# Sample colors
+sample_colors <- as.character(LaCroixColoR::lacroix_palette("Coconut", 10))
+sample_colors[5] <- "#F4E3C7"
+names(sample_colors) <- c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
+                          "CFKO_D14", "CFKO_D9", "CFKO_D7", "CFKO_D5", "CFKO_D2")
+sample_colors <- sample_colors[c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
+                          "CFKO_D2", "CFKO_D5", "CFKO_D7", "CFKO_D9", "CFKO_D14")]
+
+# Read in all data
+sample_list <- lapply(names(samples), function(x){
+  print(x)
+  base_dir_proj <- file.path(base_dir, "results", x)
+  save_dir <- file.path(base_dir_proj, "R_analysis")
+  seurat_data <- readRDS(file.path(save_dir, "rda_obj", "seurat_processed.rds"))
+  
+  nColors <- length(unique(seurat_data$cluster_celltype))
+  cluster_colors <- grDevices::colorRampPalette(
+    RColorBrewer::brewer.pal(9, "Set1"))(nColors)
+   names(cluster_colors) <- unique(seurat_data$cluster_celltype)
+
+  return_data <- list("seurat_object" = seurat_data,
+                      "type" = samples[[x]][1],
+                      "cluster_colors" = cluster_colors,
+                      "save_dir" = save_dir)
+  
+})
+
+names(sample_list) <- names(samples)
+
+```
+
+## Integration of samples {.tabset}
+
+```{r "plot-integration", echo = F}
+integration_template <- file.path(here(),
+                                  "src/scripts/templates/integration_template.Rmd")
+
+
+integration_chunks <- names(sample_list) %>%
+  map(~knit_expand(file = integration_template, sample = .x))
+```
+
+`r knit_child(text = integration_chunks)`
+
+```{r}
+rm(sample_list)
+```
+
+# DE between samples
+The problem with DE between samples it that the question perfectly correlates with the batch. Despite this limiation, we can still attempt this analysis, but we must keep the caveat in mind.
+
+There are a few options for this type of DE analysis.
+
+1. Do DE between all cells in the two samples.
+  * My general problem with this approach is that it has all of the weaknesses of the single cell approach (no replicates) but does not leverage the single cell dataset.
+  * If I were a reviewer, I would immediately ask why this wasn't done using bulk samples and replicates.
+2. Do DE between the identified cell types
+  * This could work if we are very confident in the identified cell types.
+3. Perform batch correction and compare clusters
+  * This theoretically should work and is probably the best approach, although many of the clusters may be similar and we will have more power if we merge them into cell types.
+4. Recall cell types based on the integrated sample and repeat analysis
+  * This should work, but in my attempts with the D2 samples, I'm not seeing great reproducability when calling cell types with the samples separately and combined. This takes us back to the importance of figuring out what cell type naming scheme is best.
+  * This could be an issue with my batch correction. The tool I'm using [harmony](https://github.com/immunogenomics/harmony) has worked well for me in the past and usually has pretty good ratings when compared to other methods.
+  * Another option would be to try batch correction using [scgen](https://github.com/theislab/scgen) which uses cell types as a guide. Again, we would want to make sure our original cell types are good, but this could help keep more consistency between the samples when separate and together.
+  
+
+## D2 batch correction {.tabset}
+
+```{r}
+
+sample <- "D2_combined"
+
+# Set directories
+base_dir <- here()
+
+base_dir_proj <- file.path(base_dir, "results", sample)
+save_dir <- file.path(base_dir_proj, "R_analysis")
+
+# Read in the data
+seurat_data <- readRDS(file.path(save_dir, "rda_obj", "seurat_processed.rds"))
+
+cell_type_names <- list("baron" = list("RNA_baron_celltype",
+                                    "RNA_baron_celltype_d2",
+                                    baron_colors),
+                        "byrnes" = list("RNA_celltype_byrnes",
+                                     "RNA_celltype_byrnes_d2",
+                                     byrnes_colors),
+                        "tabula_muris" = list("RNA_tabula_muris_celltype",
+                                           "RNA_tabula_muris_celltype_d2",
+                                           tabula_muris_colors),
+                        "baron_human" = list("RNA_baron_human_celltype",
+                                          "RNA_baron_human_celltype_d2",
+                                          baron_colors),
+                        "qadir" = list("RNA_qadir_celltype",
+                                    "RNA_qadir_celltype_d2",
+                                    qadir_colors),
+                        "muraro" = list("RNA_muraro_celltype",
+                                     "RNA_muraro_celltype_d2",
+                                     muraro_colors),
+                        "krentz" = list("RNA_krentz_celltype",
+                                     "RNA_krentz_celltype_d2",
+                                     krentz_colors),
+                        "combined" = list("RNA_combined_celltype",
+                                       "RNA_combined_celltype_d2",
+                                       all_colors))
+
+```
+
+```{r "plot-d2-integration", echo = F}
+d2_template <- file.path(here(),
+                         "src/scripts/templates/d2_template.Rmd")
+
+
+d2_chunks <- names(cell_type_names) %>%
+  map(~knit_expand(file = d2_template, reference = .x))
+```
+
+`r knit_child(text = d2_chunks)`
+
+# Incorrect annotation {.tabset}
+Another issue we've uncovered is that some of the 3' annotations seem to be incorrect. For example, you can see that many of the Pdx1 reads are mapping outside of the annotated gene and are not being counted. I have found a tool to bioinformatically predict other regions that may have this problem, but all of them will need to be manually checked.
+
+```{r "plot-annotation", echo = F}
+library(here)
+library(tidyverse)
+library(knitr)
+samples <- c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
+             "CFKO_D2", "CFKO_D5", "CFKO_D7", "CFKO_D9", "CFKO_D14")
+
+annotation_template <- file.path(here(),
+                         "src/scripts/templates/annotation_template.Rmd")
+
+
+annotation_chunks <- samples %>%
+  map(~knit_expand(file = annotation_template, sample = .x))
+```
+
+`r knit_child(text = annotation_chunks)`

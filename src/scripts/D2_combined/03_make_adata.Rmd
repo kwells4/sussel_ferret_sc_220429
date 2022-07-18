@@ -1,0 +1,91 @@
+---
+title: "Changing seurat to adata"
+author: "Kristen Wells"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    highlight: "tango"
+    df_print: "paged"
+    code_folding: "hide"
+    self_contained: true
+---
+
+```{r}
+library(here)
+knitr::opts_knit$set(root.dir = here())
+```
+
+```{r libraries, results='hide'}
+Sys.setenv(RETICULATE_PYTHON = "/opt/anaconda3/envs/scanpy/bin/python")
+library(Seurat)
+library(SingleCellExperiment)
+library(reticulate)
+library(tidyverse)
+```
+
+```{r conda-env}
+python_path <- conda_python(envname = "scanpy", conda = "auto")
+use_python(python = python_path)
+#conda_version(conda = "auto")
+use_condaenv(condaenv = "scanpy", required = TRUE)
+```
+
+```{python python-libraries}
+import scanpy as sc
+```
+
+```{r load-data}
+#source("src/scripts/functions.R")
+
+# Set theme
+ggplot2::theme_set(ggplot2::theme_classic(base_size = 10))
+
+sample <- "D2_combined"
+
+normalization_method <- "log" # can be SCT or log
+
+HTO <- FALSE
+ADT <- FALSE
+
+HTO <- FALSE
+ADT <- FALSE
+
+if(normalization_method == "SCT"){
+  SCT <- TRUE
+  seurat_assay <- "SCT"
+} else {
+  SCT <- FALSE
+  seurat_assay <- "RNA"
+}
+
+# Set directories
+base_dir <- here()
+base_dir_proj <- file.path(base_dir, "results", sample)
+
+save_dir <- file.path(base_dir_proj, "R_analysis")
+
+# Read in the data
+seurat_data <- readRDS(file.path(save_dir, "rda_obj/seurat_processed.rds"))
+
+#seurat_data$batch <- seurat_data$orig.ident
+seurat_data$batch <- seurat_data$sample
+seurat_data$n_genes <- seurat_data$nFeature_RNA
+seurat_data$n_counts <- seurat_data$nCount_RNA
+```
+
+```{r get-info}
+exprs <- t(GetAssayData(seurat_data, assay = "RNA", slot = "counts"))
+meta <- seurat_data[[]]
+feature_meta <- GetAssay(seurat_data)[[]]
+embedding <- Embeddings(seurat_data, "rna.umap")
+```
+
+
+```{python make-scanpy}
+adata_seurat = sc.AnnData(X = r.exprs, obs = r.meta, var = r.feature_meta)
+adata_seurat.obsm['umap'] = r.embedding
+adata_seurat.write(filename = r.save_dir + "/anndata_from_seurat.h5ad")
+```

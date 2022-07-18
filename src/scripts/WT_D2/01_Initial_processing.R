@@ -71,6 +71,10 @@ if(ADT){
 }
 dev.off()
 
+assay_data <- GetAssayData(seurat_object)
+
+table(assay_data["PDX1",] > 0)
+
 # Save before moving on
 saveRDS(seurat_object, file = file.path(save_dir, "rda_obj",
                                         "seurat_unfilt.rds"))

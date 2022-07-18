@@ -17,9 +17,11 @@ start_dir <- file.path(analysis_dir, "sc_220429")
 bam_file <- file.path(start_dir, "results", sample,
                       "outs/possorted_genome_bam.bam")
 
-gtf_file <- file.path(server_dir, 
-                      "Analysis/ref/annotation/ferret",
-                      "ASM1176430v1.1/GCF_011764305.1_ASM1176430v1.1_genomic.gtf")
+# gtf_file <- file.path(server_dir, 
+#                       "Analysis/ref/annotation/ferret",
+#                       "ASM1176430v1.1/GCF_011764305.1_ASM1176430v1.1_genomic.gtf")
+
+gtf_file <- here("files/GCF_011764305.1_ASM1176430v1.1_genomic.gtf")
 
 save_dir <- file.path(here(), "results", sample, "R_analysis")
 
@@ -80,5 +82,53 @@ pdf(file.path(save_dir, "images/ins_coverage.pdf"))
 
 plot_gviz(gtf_all = gtf, gtf_transcript = gtf_transcript, gene = "INS",
           bam_path = test, upstream = 1000, downstream = 1000)
+
+dev.off()
+
+# Make plots
+png(file.path(save_dir, "images/pax6_coverage.png"))
+
+plot_gviz(gtf_all = gtf, gtf_transcript = gtf_transcript, gene = "PAX6",
+          bam_path = test, upstream = 1000,
+          downstream = 1000)
+
+dev.off()
+
+png(file.path(save_dir, "images/pdx1_coverage.png"))
+
+plot_gviz(gtf_all = gtf, gtf_transcript = gtf_transcript, gene = "PDX1",
+          bam_path = test, upstream = 5000,
+          downstream = 5000)
+
+dev.off()
+
+
+png(file.path(save_dir, "images/ins_coverage.png"))
+
+plot_gviz(gtf_all = gtf, gtf_transcript = gtf_transcript, gene = "INS",
+          bam_path = test, upstream = 1000, downstream = 1000)
+
+dev.off()
+
+
+png(file.path(save_dir, "images/nkx6.1_coverage.png"))
+
+plot_gviz(gtf_all = gtf, gtf_transcript = gtf_transcript, gene = "NKX6-1",
+          bam_path = test, upstream = 5000, downstream = 5000)
+
+dev.off()
+
+
+png(file.path(save_dir, "images/sox9_coverage.png"))
+
+plot_gviz(gtf_all = gtf, gtf_transcript = gtf_transcript, gene = "SOX9",
+          bam_path = test, upstream = 5000, downstream = 5000)
+
+dev.off()
+
+png(file.path(save_dir, "images/neurog3_coverage.png"))
+
+plot_gviz(gtf_all = gtf, gtf_transcript = gtf_transcript, gene = "NEUROG3",
+          bam_path = test, upstream = 5000, downstream = 5000)
 
 dev.off()

@@ -1,0 +1,39 @@
+```{r echo = F}
+
+# Strings to match samples and create labels
+#gene <- "{{.x}}"
+sample <- "{{sample}}"
+sect_title <- sample
+
+if(!exists("extra_pound_read_mapping")){
+  extra_pound_read_mapping <- ""
+}
+
+
+```
+
+##`r extra_pound_read_mapping` **`r sect_title`**
+```{r, results = "asis"}
+
+figure_names <- c("insulin" = "ins_coverage.png",
+                  "pax6" = "pax6_coverage.png",
+                  "pdx1" = "pdx1_coverage.png",
+                  "nxk6.1" = "nkx6.1_coverage.png",
+                  "sox9" = " sox9_coverage.png",
+                  "neurog3" = "neurog3_coverage.png")
+
+figures <- lapply(names(figure_names), function(x){
+  
+  base_dir <- here()
+
+  base_dir_proj <- file.path(base_dir, "results", sample)
+  save_dir <- file.path(base_dir_proj, "R_analysis")
+  full_path <- str_c(file.path(save_dir, "images", figure_names[x]))
+  
+  cat(paste0("![", x, "](",
+                 full_path, ")"), "\n\n")
+
+  
+})
+
+```

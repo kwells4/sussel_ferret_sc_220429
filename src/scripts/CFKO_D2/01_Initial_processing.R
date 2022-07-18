@@ -71,6 +71,13 @@ if(ADT){
 }
 dev.off()
 
+featDistPlot(seurat_object, geneset = "PDX1", sep_by = "orig.ident",
+             combine = FALSE)
+
+assay_data <- GetAssayData(seurat_object)
+
+table(assay_data["PDX1",] > 0)
+
 # Save before moving on
 saveRDS(seurat_object, file = file.path(save_dir, "rda_obj",
                                         "seurat_unfilt.rds"))
@@ -89,6 +96,13 @@ if(ADT){
 rna_qual <- VlnPlot(seurat_object,
                     features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
                     ncol = 3)
+
+featDistPlot(seurat_object, geneset = "PDX1", sep_by = "orig.ident",
+             combine = FALSE)
+
+assay_data <- GetAssayData(seurat_object)
+
+table(assay_data["PDX1",] > 0)
 
 # Normalization
 # Single Cell Transform normalization
