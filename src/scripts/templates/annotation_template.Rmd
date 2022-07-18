@@ -19,7 +19,7 @@ figure_names <- c("insulin" = "ins_coverage.png",
                   "pax6" = "pax6_coverage.png",
                   "pdx1" = "pdx1_coverage.png",
                   "nxk6.1" = "nkx6.1_coverage.png",
-                  "sox9" = " sox9_coverage.png",
+                  "sox9" = "sox9_coverage.png",
                   "neurog3" = "neurog3_coverage.png")
 
 figures <- lapply(names(figure_names), function(x){
