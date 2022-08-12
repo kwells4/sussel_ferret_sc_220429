@@ -1,0 +1,193 @@
+---
+title: "Pseudotime analysis"
+author: "Kristen Wells"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    highlight: "tango"
+    df_print: "paged"
+    code_folding: "hide"
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = F, 
+  warning = F,
+  comment = ""
+)
+library(here)
+
+knitr::opts_knit$set(root.dir = here())
+```
+
+## Setup
+
+```{r}
+library(Seurat)
+library(tidyverse)
+library(cowplot)
+library(openxlsx)
+library(here)
+library(scAnalysisR)
+library(psupertime)
+
+source("src/scripts/functions.R")
+
+# Set theme
+ggplot2::theme_set(ggplot2::theme_classic(base_size = 10))
+
+sample <- "All_combined"
+
+sample_dir <- here("results", sample, "R_analysis")
+
+psuper_obj_wt <- readRDS(file.path(sample_dir, "rda_obj", "wt_psupertime.rds"))
+
+psuper_obj_cfko <- readRDS(file.path(sample_dir, "rda_obj",
+                                     "cfko_psupertime.rds"))
+
+
+sample_colors <- as.character(LaCroixColoR::lacroix_palette("Coconut", 10))
+sample_colors[5] <- "#F4E3C7"
+names(sample_colors) <- c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
+                          "CFKO_D14", "CFKO_D9", "CFKO_D7", "CFKO_D5", "CFKO_D2")
+sample_colors <- sample_colors[c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
+                          "CFKO_D2", "CFKO_D5", "CFKO_D7", "CFKO_D9", "CFKO_D14")]
+
+wt_sample_colors <- sample_colors[names(sample_colors) %in%
+                                    c("WT_D2", "WT_D5", "WT_D7",
+                                      "WT_D9", "WT_D14")]
+
+wt_sample_colors_day <- wt_sample_colors
+names(wt_sample_colors_day) <- gsub("WT_", "", names(wt_sample_colors_day))
+
+cfko_sample_colors <- sample_colors[names(sample_colors) %in%
+                                    c("CFKO_D2", "CFKO_D5", "CFKO_D7",
+                                      "CFKO_D9", "CFKO_D14")]
+
+cfko_sample_colors_day <- cfko_sample_colors
+names(cfko_sample_colors_day) <- gsub("CFKO_", "", names(cfko_sample_colors_day))
+
+```
+
+# Quality plots {.tabset}
+
+## WT
+
+### Model diagnostics
+The plot below shows how several measures of performance are affected by the extent of regularization, λ. The x-axis shows λ, indicating how strongly the model tries to set coefficients to zero. The optimal value of λ is the one which gives the best mean performance over the training data, based on one of two possible measures of performance.
+
+
+The first row shows classification error, namely the proportion of cells for which psupertime predicted the wrong label (equivalent to 1 - accuracy). The second row is cross-entropy, which quantifies how confidently the psupertime classifier predicts the correct label (so predicting the correct label with probability p=0.9 results in a lower cross-entropy than with probability p=0.5). Accuracy is a ‘lumpy’ measurement of performance (something is either correct or not), whereas cross-entropy is continuous; this means that selecting λ on the basis of cross-entropy results in less noisy selection of the λ value.
+
+The third row shows the number of genes with non-zero coefficients, for each given value of λ (this is effectively the inverse of sparsity, which is the proportion of zero coefficients).
+
+The solid vertical grey line shows the value of λ resulting in the best performance. The dashed vertical grey line shows the largest value of λ with performance within one standard error of this. By default psupertime selects this value, giving increased sparsity at a minimal cost to performance. We show lines for selection using both classification error and cross-entropy; the thicker lines indicate which measure was actually used to select λ. In this case we used the λ value within 1 s.e. of the best performance on cross-entropy. Reading down to the plot of non-zero genes, we can see that this resulted in just under 100 genes with non-zero coefficients.
+
+```{r, fig.width=8, fig.height=6}
+g <- plot_train_results(psuper_obj_wt)
+
+g
+
+```
+
+
+### Ordering of cells
+Like other pseudotime methods, one output from psupertime is an ordering for the individual cells (shown below). In this case of psupertime, this ordering should broadly follow the group-level labels given as inputs.
+
+The x-axis shows the one-dimensional projection learned by psupertime. The different colours are the sequential labels used as input to psupertime, with the y-axis showing their densities over the pseudotime. The vertical lines indicate the point with equal probability of prediction between each pair of successive labels. For example, the first vertical line (blue, x=∼-6) shows the value of pseudotime at which psupertime predicts the labels 1 year vs {5,6,21,22,38,44,54} years with equal probability.
+
+Interesting things you might observe:
+
+Individual cells may have earlier or later values than others with the same label, possibly suggesting interesting subpopulations within a group label.
+The thresholds learned by psupertime indicate how easy it is to distinguish between the different labels: where thresholds are close together, these labels are hard to separate, and where they are distant this task is easier.
+
+```{r}
+g <- plot_labels_over_psupertime(psuper_obj_wt, label_name='Day')
+
+g + 
+  scale_color_manual(values = wt_sample_colors_day) +
+  scale_fill_manual(values = wt_sample_colors_day)
+
+```
+
+### Genes of interest
+psupertime identifies a small set of genes which place the individual cells approximately in the order of the group-level labels. This list can be the most relevant output from psupertime. The plot below shows the 20 genes with the largest absolute coefficient values (subject to the absolute value being >0.05). Genes with positive coefficients will have expression positively correlated with the group-level labels, and vice versa for negative coefficients.
+
+
+```{r}
+g <- plot_identified_gene_coefficients(psuper_obj_wt)
+
+
+g
+```
+
+Another way of examining these genes is to plot their expression values against the learned pseudotime values. The plot below shows the same set of genes, with the (z-scored log) expression values for all individual cells. This can show different profiles of expression, e.g. initially on, then switched off (ITM2A); and increasing or decreasing relatively constantly (CLU).
+
+```{r}
+g <- plot_identified_genes_over_psupertime(psuper_obj_wt,
+                                           label_name='Day')
+(g)
+```
+
+
+## CFKO
+
+### Model diagnostics
+The plot below shows how several measures of performance are affected by the extent of regularization, λ. The x-axis shows λ, indicating how strongly the model tries to set coefficients to zero. The optimal value of λ is the one which gives the best mean performance over the training data, based on one of two possible measures of performance.
+
+
+The first row shows classification error, namely the proportion of cells for which psupertime predicted the wrong label (equivalent to 1 - accuracy). The second row is cross-entropy, which quantifies how confidently the psupertime classifier predicts the correct label (so predicting the correct label with probability p=0.9 results in a lower cross-entropy than with probability p=0.5). Accuracy is a ‘lumpy’ measurement of performance (something is either correct or not), whereas cross-entropy is continuous; this means that selecting λ on the basis of cross-entropy results in less noisy selection of the λ value.
+
+The third row shows the number of genes with non-zero coefficients, for each given value of λ (this is effectively the inverse of sparsity, which is the proportion of zero coefficients).
+
+The solid vertical grey line shows the value of λ resulting in the best performance. The dashed vertical grey line shows the largest value of λ with performance within one standard error of this. By default psupertime selects this value, giving increased sparsity at a minimal cost to performance. We show lines for selection using both classification error and cross-entropy; the thicker lines indicate which measure was actually used to select λ. In this case we used the λ value within 1 s.e. of the best performance on cross-entropy. Reading down to the plot of non-zero genes, we can see that this resulted in just under 100 genes with non-zero coefficients.
+
+```{r, fig.width=8, fig.height=6}
+g <- plot_train_results(psuper_obj_cfko)
+
+g
+
+```
+
+
+### Ordering of cells
+Like other pseudotime methods, one output from psupertime is an ordering for the individual cells (shown below). In this case of psupertime, this ordering should broadly follow the group-level labels given as inputs.
+
+The x-axis shows the one-dimensional projection learned by psupertime. The different colours are the sequential labels used as input to psupertime, with the y-axis showing their densities over the pseudotime. The vertical lines indicate the point with equal probability of prediction between each pair of successive labels. For example, the first vertical line (blue, x=∼-6) shows the value of pseudotime at which psupertime predicts the labels 1 year vs {5,6,21,22,38,44,54} years with equal probability.
+
+Interesting things you might observe:
+
+Individual cells may have earlier or later values than others with the same label, possibly suggesting interesting subpopulations within a group label.
+The thresholds learned by psupertime indicate how easy it is to distinguish between the different labels: where thresholds are close together, these labels are hard to separate, and where they are distant this task is easier.
+
+```{r}
+g <- plot_labels_over_psupertime(psuper_obj_cfko, label_name='Day')
+
+g + 
+  scale_color_manual(values = cfko_sample_colors_day) +
+  scale_fill_manual(values = cfko_sample_colors_day)
+
+```
+
+### Genes of interest
+psupertime identifies a small set of genes which place the individual cells approximately in the order of the group-level labels. This list can be the most relevant output from psupertime. The plot below shows the 20 genes with the largest absolute coefficient values (subject to the absolute value being >0.05). Genes with positive coefficients will have expression positively correlated with the group-level labels, and vice versa for negative coefficients.
+
+
+```{r}
+g <- plot_identified_gene_coefficients(psuper_obj_cfko)
+
+
+g
+```
+
+Another way of examining these genes is to plot their expression values against the learned pseudotime values. The plot below shows the same set of genes, with the (z-scored log) expression values for all individual cells. This can show different profiles of expression, e.g. initially on, then switched off (ITM2A); and increasing or decreasing relatively constantly (CLU).
+
+```{r}
+g <- plot_identified_genes_over_psupertime(psuper_obj_cfko,
+                                           label_name='Day')
+(g)
+```

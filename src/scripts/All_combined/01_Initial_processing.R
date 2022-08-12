@@ -55,6 +55,8 @@ seurat_objects <- lapply(samples, function(x){
   # Read in the data
   seurat_data <- readRDS(file.path(save_dir, "rda_obj", "seurat_processed.rds"))
   
+  seurat_data$original_cluster <- seurat_data$RNA_cluster
+  
   return(seurat_data)
   
 })

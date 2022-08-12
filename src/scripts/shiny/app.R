@@ -65,6 +65,17 @@ all_colors <- c("Acinar" = "#D4405B",
                 "transitional_to_acinar2" = "#CC1B3B",
                 "centroacinar" = "#78295D")
 
+sample_colors <- c("WT_D2" = "#881C00",
+                   "WT_D5" = "#9D4214",
+                   "WT_D7" = "#B66F36",
+                   "WT_D9" = "#DDB790",
+                   "WT_D14" = "#F4E3C7",
+                   "CFKO_D2" = "#172869",
+                   "CFKO_D5" = "#0A5396",
+                   "CFKO_D7" = "#037DB9",
+                   "CFKO_D9" = "#12A0B3",
+                   "CFKO_D14" = "#4BC0B4")
+
 color_mapping <- list("RNA_celltype_byrnes" = byrnes_colors,
                    "RNA_baron_celltype" = baron_colors,
                    "RNA_tabula_muris_celltype" = tabula_muris_colors,
@@ -72,18 +83,9 @@ color_mapping <- list("RNA_celltype_byrnes" = byrnes_colors,
                    "RNA_qadir_celltype" = qadir_colors,
                    "RNA_muraro_celltype" = muraro_colors,
                    "RNA_krentz_celltype" = krentz_colors,
-                   "RNA_combined_celltype" = all_colors)
+                   "RNA_combined_celltype" = all_colors,
+                   "Sample" = sample_colors)
 
-# Sample colors
-sample_colors <- as.character(LaCroixColoR::lacroix_palette("Coconut", 10))
-sample_colors[5] <- "#F4E3C7"
-names(sample_colors) <- c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
-                          "CFKO_D14", "CFKO_D9", "CFKO_D7", "CFKO_D5", "CFKO_D2")
-sample_colors <- sample_colors[c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
-                                 "CFKO_D2", "CFKO_D5", "CFKO_D7", "CFKO_D9", "CFKO_D14")]
-
-
-#source("functions.R")
 
 ggplot2::theme_set(ggplot2::theme_classic(base_size = 10))
 
@@ -112,7 +114,8 @@ ui <- fluidPage(
                     "RNA_qadir_celltype",
                     "RNA_muraro_celltype",
                     "RNA_krentz_celltype",
-                    "RNA_combined_celltype")),
+                    "RNA_combined_celltype",
+                    "Sample")),
       
       # Input: Selector for which gene ----
       selectInput("gene", "Gene of interest:",
@@ -139,11 +142,36 @@ server <- function(input, output) {
   
   observeEvent(input$seurat_object, {
     seurat_object <- readRDS(seurat_object_list[[input$seurat_object]])
-    objects$celltype_colors <- color_mapping[[input$meta_data]]
+    
+    seurat_object$Sample <- seurat_object$orig.ident
+    
     seurat_object$cluster_celltype <- paste(seurat_object$RNA_cluster,
                                             seurat_object[[input$meta_data]][[1]],
                                             sep = "_")
     
+    ncolors <- length(unique(seurat_object$cluster_celltype))
+    cluster_colors <- grDevices::colorRampPalette(
+      RColorBrewer::brewer.pal(9, "Set1"))(ncolors)
+    
+    names(cluster_colors) <- unique(seurat_object$cluster_celltype)
+    
+    objects$cluster_colors <- cluster_colors
+    
+    objects$seurat_object <- seurat_object
+  })
+  
+  observeEvent(input$meta_data, {
+    seurat_object <- objects$seurat_object
+    
+    seurat_object$Sample <- seurat_object$orig.ident
+    
+    if(input$meta_data == "Sample"){
+      seurat_object$cluster_celltype <- seurat_object$RNA_cluster
+    } else{
+      seurat_object$cluster_celltype <- paste(seurat_object$RNA_cluster,
+                                              seurat_object[[input$meta_data]][[1]],
+                                              sep = "_")
+    }
     ncolors <- length(unique(seurat_object$cluster_celltype))
     cluster_colors <- grDevices::colorRampPalette(
       RColorBrewer::brewer.pal(9, "Set1"))(ncolors)
@@ -162,13 +190,15 @@ server <- function(input, output) {
     
     cluster_colors <- objects$cluster_colors
     
-    celltype_colors <- objects$celltype_colors
+    celltype_colors <- color_mapping[[input$meta_data]]
     
     umap1 <- plotDimRed(seurat_object, col_by = input$gene,
                         plot_type = "rna.umap")[[1]]
+    
     umap2 <- plotDimRed(seurat_object, col_by = input$meta_data,
                         plot_type = "rna.umap",
                         color = celltype_colors)[[1]]
+    
     violin1 <- featDistPlot(seurat_object, input$gene,
                             sep_by = input$meta_data,
                             combine = FALSE,
@@ -181,23 +211,6 @@ server <- function(input, output) {
                        align = "hv",
                        axis = "lr")
 
-    # umap3 <- plotDimRed(seurat_object, col_by = "cluster_celltype",
-    #                     plot_type = "rna.umap",
-    #                     color = cluster_colors)[[1]]
-    # 
-    # violin2 <- featDistPlot(seurat_object, input$gene,
-    #                         sep_by = "cluster_celltype",
-    #                         combine = FALSE,
-    #                         color = cluster_colors)[[1]]
-    # 
-    # 
-    # cowplot::plot_grid(umap1, NULL,
-    #                    umap2, violin1,
-    #                    umap3, violin2,
-    #                    labels = c("A", "", "B", "C", "D", "E"),
-    #                    nrow = 3, ncol = 2,
-    #                    align = "hv",
-    #                    axis = "lr")
 
   })
   
@@ -211,22 +224,25 @@ server <- function(input, output) {
     celltype_colors <- objects$celltype_colors
     
 
-    umap3 <- plotDimRed(seurat_object, col_by = "cluster_celltype",
-                        plot_type = "rna.umap",
-                        color = cluster_colors)[[1]]
-    
-    violin2 <- featDistPlot(seurat_object, input$gene,
-                            sep_by = "cluster_celltype",
-                            combine = FALSE,
-                            color = cluster_colors)[[1]]
-    
-    
-    cowplot::plot_grid(umap3, violin2,
-                       NULL,
-                       labels = c("D", "E", ""),
-                       nrow = 2, ncol = 2,
-                       align = "hv",
-                       axis = "lr")
+    if(input$seurat_object %in% names(sample_colors)){
+      umap3 <- plotDimRed(seurat_object, col_by = "cluster_celltype",
+                          plot_type = "rna.umap",
+                          color = cluster_colors)[[1]]
+      
+      violin2 <- featDistPlot(seurat_object, input$gene,
+                              sep_by = "cluster_celltype",
+                              combine = FALSE,
+                              color = cluster_colors)[[1]]
+      
+      
+      cowplot::plot_grid(umap3, violin2,
+                         NULL,
+                         labels = c("D", "E", ""),
+                         nrow = 2, ncol = 2,
+                         align = "hv",
+                         axis = "lr")
+    }
+
     
   })
 }

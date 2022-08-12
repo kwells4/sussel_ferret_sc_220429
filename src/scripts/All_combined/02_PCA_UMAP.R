@@ -101,7 +101,8 @@ seurat_data$genotype <- gsub("_D[0-9]+", "", seurat_data$sample)
 plot_values <- c("sample", "day", "genotype", "RNA_celltype_byrnes",
                  "RNA_baron_celltype", "RNA_tabula_muris_celltype",
                  "RNA_combned_celltype", "RNA_baron_human_celltype",
-                 "RNA_qadir_celltype", "RNA_muraro_celltype")
+                 "RNA_qadir_celltype", "RNA_muraro_celltype",
+                 "RNA_krentz_celltype")
 
 all_plots <- plotDimRed(seurat_data, col_by = plot_values,
                         plot_type = "rna.umap")
@@ -244,17 +245,20 @@ if(ADT){
                           plot_type = "wnn.umap")
 }
 
-plotDimRed(seurat_data, "INS", plot_type = "rna.umap")
-plotDimRed(seurat_data, "GCG", plot_type = "rna.umap")
-plotDimRed(seurat_data, "SST", plot_type = "rna.umap")
-plotDimRed(seurat_data, "NEUROG3", plot_type = "rna.umap")
+# plotDimRed(seurat_data, "INS", plot_type = "rna.umap")
+# plotDimRed(seurat_data, "GCG", plot_type = "rna.umap")
+# plotDimRed(seurat_data, "SST", plot_type = "rna.umap")
+# plotDimRed(seurat_data, "NEUROG3", plot_type = "rna.umap")
+# 
+# 
+# all_genes <- rownames(seurat_data)
+# 
+# all_genes[grepl("INS", all_genes)]
+# all_genes[grepl("GCG", all_genes)]
+# all_genes[grepl("SST", all_genes)]
+# all_genes[grepl("NEUROG3", all_genes)]
 
-
-all_genes <- rownames(seurat_data)
-
-all_genes[grepl("INS", all_genes)]
-all_genes[grepl("GCG", all_genes)]
-all_genes[grepl("SST", all_genes)]
-all_genes[grepl("NEUROG3", all_genes)]
+seurat_data$corrected_cluster <- seurat_data$RNA_cluster
+seurat_data$RNA_cluster <- seurat_data$uncorrected_cluster
 
 saveRDS(seurat_data, file.path(save_dir, "rda_obj/seurat_processed.rds"))
