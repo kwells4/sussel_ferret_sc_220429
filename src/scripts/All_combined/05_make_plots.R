@@ -18,6 +18,14 @@ wt_samples <- c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14")
 
 cfko_samples <- c("CFKO_D2", "CFKO_D5", "CFKO_D7", "CFKO_D9", "CFKO_D14")
 
+sample_colors <- as.character(LaCroixColoR::lacroix_palette("Coconut", 10))
+sample_colors[5] <- "#F4E3C7"
+names(sample_colors) <- c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
+                          "CFKO_D14", "CFKO_D9", "CFKO_D7", "CFKO_D5", "CFKO_D2")
+sample_colors <- sample_colors[c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
+                                 "CFKO_D2", "CFKO_D5", "CFKO_D7", "CFKO_D9", "CFKO_D14")]
+
+
 sample_dir <- here("results", sample, "R_analysis")
 
 merged_seurat <- readRDS(file.path(sample_dir, "rda_obj",
@@ -88,3 +96,54 @@ dev.off()
 
 
 saveRDS(merged_seurat, file.path(sample_dir, "rda_obj/seurat_processed.rds"))
+
+
+# DE heatmaps ------------------------------------------------------------------
+
+# First some building
+
+merged_seurat$sample <- factor(merged_seurat$sample,
+                               levels = names(sample_colors))
+
+# Read in DE genes
+de_directory <- file.path(sample_dir, "files", "DE")
+
+de_tests <- c("D2_all", "D5_all", "D7_all", "D9_all", "D14_all")
+
+# Make plots for all tests 
+all_plots <- invisible(lapply(de_tests, function(de_test){
+  print(de_test)
+  
+  excel_file <- file.path(de_directory, paste0(de_test, ".xlsx"))
+  
+  excel_sheets <- openxlsx::getSheetNames(excel_file)
+  
+  de_genes <- lapply(excel_sheets, function(x){
+    de_df <- openxlsx::readWorkbook(excel_file, sheet = x)
+    de_df$up_in <- x
+    return(de_df)
+  })
+  
+  names(de_genes) <- excel_sheets
+  
+  de_genes <- do.call(rbind, de_genes)
+  
+  
+  # Plot heatmap across all samples
+  pdf(file.path(sample_dir, "images", paste0(de_test, "_heatmap_average.pdf")))
+  print(plot_heatmap(merged_seurat, gene_list = unique(de_genes$gene),
+                     meta_col = "sample", average_expression = TRUE,
+                     colors = sample_colors, plot_rownames = FALSE))
+  
+  dev.off()
+  
+  pdf(file.path(sample_dir, "images", paste0(de_test, "_heatmap_cells.pdf")))
+  
+  print(plot_heatmap(merged_seurat, gene_list = unique(de_genes$gene),
+                     meta_col = "sample", average_expression = FALSE,
+                     colors = sample_colors, plot_rownames = FALSE))
+  
+  dev.off()
+  
+}))
+
