@@ -38,6 +38,9 @@ all_colors <- c("Acinar" = "#D4405B",
                 "transitional_to_acinar2" = "#CC1B3B",
                 "centroacinar" = "#78295D")
 
+phase_colors <- LaCroixColoR::lacroix_palette("CranRaspberry", n = 3)
+names(phase_colors) <- c("S", "G1", "G2M")
+
 sample_dir <- here("results", sample, "R_analysis")
 
 merged_seurat <- readRDS(file.path(sample_dir, "rda_obj",
@@ -418,14 +421,14 @@ dev.off()
 
 ## Pseudotime ------------------------------------------------------------------
 make_pseudotime_plots <- function(seurat_object, genotype_select, geneset,
-                                  psuedotime_col = "psuper"){
+                                  pseudotime_column = "psuper"){
   meta_data <- seurat_object[[]] %>%
     dplyr::filter(genotype == genotype_select) %>%
-    dplyr::select(dplyr::all_of(c(pseudotime_col, geneset)))
+    dplyr::select(dplyr::all_of(c(pseudotime_column, geneset)))
     
-  plot <- ggplot2::ggplot(meta_data, ggplot2::aes_string(x = pseudotime_col,
+  plot <- ggplot2::ggplot(meta_data, ggplot2::aes_string(x = pseudotime_column,
                                                  y = geneset,
-                                                 color = pseudotime_col)) +
+                                                 color = pseudotime_column)) +
     ggplot2::geom_point() +
     viridis::scale_color_viridis(option = "magma")
   
@@ -494,9 +497,6 @@ print(all_cell_types)
 dev.off()
 
 
-saveRDS(merged_seurat, file.path(sample_dir, "rda_obj/seurat_processed.rds"))
-
-
 ## Violin plots ----------------------------------------------------------------
 pdf(file.path(sample_dir, "images", "DE_violin_plots.pdf"),
     height = 11, width = 8)
@@ -527,3 +527,40 @@ plot(featDistPlot(merged_seurat, geneset = c("SLC25A13", "SPP1",
                   sep_by = "sample", color = sample_colors))
 
 dev.off()
+
+
+# Umap of cell cycle phase -----------------------------------------------------
+
+all_plots <- lapply(all_samples, function(x){
+  plotDimRed(merged_seurat, "Phase", plot_type = "rna.umap",
+             highlight_group = TRUE, group = x, meta_data_col = "sample",
+             color = phase_colors)[[1]]
+})
+
+names(all_plots) <- all_samples
+
+
+all_cell_types <- cowplot::plot_grid(all_plots$WT_D2, all_plots$WT_D5,
+                                     all_plots$WT_D7, all_plots$WT_D9,
+                                     all_plots$WT_D14, NULL, all_plots$CFKO_D2,
+                                     all_plots$CFKO_D5, all_plots$CFKO_D7,
+                                     all_plots$CFKO_D9, all_plots$CFKO_D14,
+                                     NULL, nrow = 4, ncol = 3)
+
+
+pdf(file.path(sample_dir, "images", "cell_cycle_umap.pdf"),
+    width = 10, height = 10)
+print(all_cell_types)
+
+dev.off()
+
+pdf(file.path(sample_dir, "images", "cell_cycle_umap_individual.pdf"),
+    width = 6, height = 6)
+
+print(all_plots)
+
+dev.off()
+
+
+
+saveRDS(merged_seurat, file.path(sample_dir, "rda_obj/seurat_processed.rds"))
