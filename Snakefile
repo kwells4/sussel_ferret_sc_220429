@@ -29,6 +29,7 @@ AGGR_GROUP     = config["AGGR_SAMPLES"]
 CHEMISTRY      = config["CHEMISTRY"]
 VELOCYTO_GROUP = config["VELOCYTO_GROUP"]
 SANDBOX        = config["SANDBOX"]
+STRINGTIE_GTF  = config["STRINGTIE_GTF"]
 
 # Function to check paths for input files/directories
 def _check_path(path):
@@ -125,6 +126,12 @@ rule all:
         expand(
             "{results}/bigwig_trim/transfer_done.txt",
             results = RESULTS
+            ),
+
+        # Run stringtie
+        expand(
+            "{results}/stringtie/stringtie_combined.gtf",
+            results = RESULTS
             )
         # expand(
         #     "{results}/logs/{sample}_velocyto_done.out",
@@ -138,3 +145,4 @@ rule all:
 include: "src/rules/cellranger_multi.snake"
 include: "src/rules/velocyto.snake"
 include: "src/rules/make_bigwig.snake"
+include: "src/rules/run_stringtie.snake"
