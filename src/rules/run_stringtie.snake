@@ -1,0 +1,44 @@
+rule run_stringtie:
+    input:
+        "{results}/logs/{sample}_count_done.out"
+    output:
+        "{results}/stringtie/{sample}_stringtie.gtf"
+    params:
+        job_name = "stringtie",
+        memory   = "select[mem>50] rusage[mem=50]",
+        gtf      = STRINGTIE_GTF,
+        in_bam   = "{results}/{sample}/outs/possorted_genome_bam.bam"
+    log:
+        "{results}/logs/stringtie/{sample}_stringtie"
+    threads:
+        1
+    shell:
+        """
+        stringtie -o {output} \
+            -G {params.gtf} \
+            {params.in_bam}
+        """
+
+rule combine_stringtie:
+    input:
+        expand(
+            "{results}/stringtie/{sample}_stringtie.gtf",
+            results = RESULTS, sample = SAMPLES
+            )
+    output:
+        "{results}/stringtie/stringtie_combined.gtf"
+    params:
+        job_name = "stringtie_merge",
+        memory   = "select[mem>50] rusage[mem=50]",
+        gtf      = STRINGTIE_GTF
+    log:
+        "{results}/logs/stringtie/stringtie_merge"
+    threads:
+        1
+    shell:
+        """
+        stringtie --merge \
+            -o {output} \
+            -G {params.gtf} \
+            {input}
+        """

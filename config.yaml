@@ -92,3 +92,10 @@ VELOCYTO_GROUP:
 # Path to sandbox folder for data upload
 SANDBOX:
     "amc-sandbox.ucdenver.edu://data/home/wellskri/public_html/lori_sussel/ferret"
+
+# Path to the gtf to use with stringtie. Can't have gene annotations
+# To remove gene annotations run:
+# awk '$3 != "gene" ' original.gtf > no_genes.gtf
+STRINGTIE_GTF:
+    " /beevol/home/wellskri/Analysis/ref/annotation/ferret/ASM1176430v1.1/GCF_011764305.1_ASM1176430v1.1_no_genes.gtf"
+    
