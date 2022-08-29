@@ -118,7 +118,7 @@ find_write_markers_orig_orth <- function(seurat_object, save_dir,
                                          assay = "RNA", pval = 0.05,
                                          logfc = 0.5, gene_lists = NULL) 
 {
-  marker_genes <- FindAllMarkers(seurat_object, assay = seurat_assay, 
+  marker_genes <- FindAllMarkers(seurat_object, assay = assay, 
                                  only.pos = TRUE)
   if(!is.null(mapping_file)){
     # Add in ortholog gene

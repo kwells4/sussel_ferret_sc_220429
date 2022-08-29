@@ -46,6 +46,9 @@ sample_dir <- here("results", sample, "R_analysis")
 merged_seurat <- readRDS(file.path(sample_dir, "rda_obj",
                                    "seurat_processed.rds"))
 
+
+merged_seurat$sample <- merged_seurat$orig.ident
+
 # Gene sets
 gene_path <- here("files/GSEA_signaling_pathways_with_orthologs.xlsx")
 
@@ -496,6 +499,40 @@ print(all_cell_types)
 
 dev.off()
 
+
+# Umap of cell types -----------------------------------------------------------
+color_palette <- grDevices::colorRampPalette(RColorBrewer::brewer.pal(9,
+                                                                      "Set1"))
+
+all_celltypes <- unique(merged_seurat$RNA_combined_celltype_ref_name)
+
+celltype_cols <- color_palette(length(all_celltypes))
+
+names(celltype_cols) <- all_celltypes
+
+all_plots <- lapply(all_samples, function(x){
+  plotDimRed(merged_seurat, "RNA_combined_celltype_ref_name",
+             plot_type = "rna.umap",
+             highlight_group = TRUE, group = x, meta_data_col = "sample",
+             color = celltype_cols)[[1]]
+})
+
+names(all_plots) <- all_samples
+
+
+all_cell_types <- cowplot::plot_grid(all_plots$WT_D2, all_plots$WT_D5,
+                                     all_plots$WT_D7, all_plots$WT_D9,
+                                     all_plots$WT_D14, NULL, all_plots$CFKO_D2,
+                                     all_plots$CFKO_D5, all_plots$CFKO_D7,
+                                     all_plots$CFKO_D9, all_plots$CFKO_D14,
+                                     NULL, nrow = 4, ncol = 3)
+
+
+pdf(file.path(sample_dir, "images", "combined_cell_type_reference_umap.pdf"),
+    width = 15, height = 15)
+print(all_cell_types)
+
+dev.off()
 
 ## Violin plots ----------------------------------------------------------------
 pdf(file.path(sample_dir, "images", "DE_violin_plots.pdf"),

@@ -332,5 +332,50 @@ plotDimRed(seurat_data, col_by = "RNA_combined_celltype",
            plot_type = "rna.umap")
 
 #-------------------------------------------------------------------------------
+############################
+# Combined with ref winner #
+############################
+
+colnames(seurat_res_baron) <- paste0(colnames(seurat_res_baron), "_baron")
+
+colnames(seurat_res_baron_human) <- paste0(colnames(seurat_res_baron_human),
+                                           "_baron")
+colnames(seurat_res_byrnes) <- paste0(colnames(seurat_res_byrnes),
+                                      "_m_byrnes")
+
+colnames(seurat_res_tabula_muris) <- paste0(colnames(seurat_res_tabula_muris),
+                                            "_m_tabula_muris")
+
+colnames(seurat_res_qadir) <- paste0(colnames(seurat_res_qadir),
+                                     "_h_qadir")
+
+colnames(seurat_res_muraro) <- paste0(colnames(seurat_res_muraro),
+                                      "_h_muraro")
+
+colnames(seurat_res_krentz) <- paste0(colnames(seurat_res_krentz),
+                                      "_h_krentz")
+
+full_res <- cbind(cbind(seurat_res_baron, seurat_res_byrnes),
+                  seurat_res_tabula_muris, seurat_res_baron_human,
+                  seurat_res_qadir, seurat_res_muraro,
+                  seurat_res_krentz)
+
+seurat_cluster <- cor_to_call(full_res) %>% 
+  mutate(type = ifelse(r < cor_cutoff, "undetermined", type))
+
+new_clusters <- seurat_cluster$type
+
+names(new_clusters) <- seurat_cluster$cluster
+
+seurat_data$RNA_combined_celltype_ref_name <- new_clusters[seurat_data$RNA_cluster]
+
+plotDimRed(seurat_data, col_by = "RNA_combined_celltype_ref_name",
+           plot_type = "rna.umap")
+
+
+write.csv(full_res, file = file.path(save_dir, "files", "all_clustifyr_cors.csv"))
+
+
+#-------------------------------------------------------------------------------
 
 saveRDS(seurat_data, file.path(save_dir, "rda_obj", "seurat_processed.rds"))

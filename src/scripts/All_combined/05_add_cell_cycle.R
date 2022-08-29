@@ -32,7 +32,7 @@ individual_meta <- lapply(seq_along(all_samples), function(x){
                                    "rda_obj", "seurat_processed.rds"))
   
   seurat_meta <- seurat_data[[]] %>%
-    dplyr::select(orig.ident, Phase) %>%
+    dplyr::select(orig.ident, Phase, RNA_combined_celltype_ref_name) %>%
     tibble::rownames_to_column("barcode_old") %>%
     dplyr::mutate(barcode = paste(barcode_old, x, sep = "_"),
                   count = x)
@@ -120,4 +120,4 @@ openxlsx::saveWorkbook(wb = cell_cycle_percent,
                        overwrite = TRUE,
                        file = here("results/All_combined/R_analysis/files/cell_cycle_percents.xlsx"))
 
-saveRDS(seurat_data, file.path(save_dir, "rda_obj/seurat_processed.rds"))
+saveRDS(merged_seurat, file.path(sample_dir, "rda_obj/seurat_processed.rds"))
