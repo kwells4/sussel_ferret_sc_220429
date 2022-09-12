@@ -34,7 +34,7 @@ test_celltype_map <- c("0" = "ductal_1",
                        "4" = "ductal_4",
                        "5" = "ductal_1",
                        "6" = "transitional_to_acinar2",
-                       "7" = "cnetroacinar",
+                       "7" = "centroacinar",
                        "8" = "ductal_3",
                        "9" = "ductal_1",
                        "10" = "ductal_1",
@@ -120,3 +120,25 @@ invisible(lapply(names(ductal_genes), function(x){
 }))
 
 
+# update celltypes -------------------------------------------------------------
+
+new_celltype_map <- c("ductal_1" = "centroacinar",
+                      "ductal_2" = "acinar",
+                      "ductal_3" = "ductal",
+                      "ductal_4" = "acinar",
+                      "centroacinar" = "centroacinar",
+                      "progenitor_like_cells" = "progenitor_like_cells",
+                      "transitional_to_acinar2" = "transitional_to_acinar2")
+
+
+seurat_data$old_RNA_celltype <- seurat_data$RNA_combined_celltype
+
+seurat_data$RNA_combined_celltype <- new_celltype_map[seurat_data$test_celltype]
+
+table(seurat_data$old_RNA_celltype, seurat_data$RNA_combined_celltype)
+
+plotDimRed(seurat_data, col_by = "RNA_combined_celltype", plot_type = "rna.umap")
+
+
+saveRDS(seurat_data,
+        file.path(save_dir, "rda_obj", "seurat_processed.rds"))

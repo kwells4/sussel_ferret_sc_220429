@@ -4,6 +4,7 @@ library(cowplot)
 library(openxlsx)
 library(here)
 library(scAnalysisR)
+library(ggridges)
 
 source("src/scripts/functions.R")
 
@@ -27,15 +28,12 @@ sample_colors <- sample_colors[c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
 
 
 
-all_colors <- c("Acinar" = "#D4405B",
-                "acinar" = "#D4405B",
-                "Ductal" = "#A5903E",
+all_colors <- c("acinar" = "#D4405B",
                 "ductal" = "#A5903E",
                 "Prolif_acinar" = "#55A470",
                 "Prolif_ductal" = "#767FC9",
                 "progenitor_like_cells" = "#297878",
-                "transitional_to_acinar1" = "#874652",
-                "transitional_to_acinar2" = "#CC1B3B",
+                "transitional_to_acinar" = "#874652",
                 "centroacinar" = "#78295D")
 
 phase_colors <- LaCroixColoR::lacroix_palette("CranRaspberry", n = 3)
@@ -80,6 +78,8 @@ project_info <- rbind(project_info_cfko, project_info_wt)
 merged_seurat <- AddMetaData(merged_seurat, metadata = project_info)
 
 all_samples <- c(wt_samples, cfko_samples)
+
+## Make plots of clusters ------------------------------------------------------
 
 cluster_plots <- lapply(all_samples, function(x){
   plotDimRed(merged_seurat, col_by = "RNA_cluster", plot_type = "rna.umap",
@@ -597,6 +597,99 @@ pdf(file.path(sample_dir, "images", "cell_cycle_umap_individual.pdf"),
 print(all_plots)
 
 dev.off()
+
+## Psuedotime density plots ----------------------------------------------------
+
+plotting_df <- merged_seurat[[]] %>%
+  dplyr::mutate(day = gsub(".*_", "", orig.ident),
+                genotype = gsub("_D[0-9]*", "", orig.ident))
+
+wt_plotting_df <- plotting_df %>%
+  dplyr::filter(genotype == "WT")
+
+cfko_plotting_df <- plotting_df %>%
+  dplyr::filter(genotype == "CFKO")
+
+wt_plotting_df$day <- factor(wt_plotting_df$day,
+                             levels = c("D2", "D5", "D7", "D9", "D14"))
+
+wt_plotting_df$RNA_combined_celltype <- factor(wt_plotting_df$RNA_combined_celltype,
+                                               levels = c("acinar",
+                                                          "Prolif_ductal",
+                                                          "ductal",
+                                                          "transitional_to_acinar1",
+                                                          "transitional_to_acinar2",
+                                                          "Prolif_acinar",
+                                                          "centroacinar",
+                                                          "progenitor_like_cells"))
+
+cfko_plotting_df$day <- factor(cfko_plotting_df$day,
+                              levels = c("D2", "D5", "D7", "D9", "D14"))
+
+cfko_plotting_df$RNA_combined_celltype <- factor(cfko_plotting_df$RNA_combined_celltype,
+                                               levels = c("acinar",
+                                                          "ductal",
+                                                          "transitional_to_acinar1",
+                                                          "progenitor_like_cells",
+                                                          "centroacinar"))
+
+wt_sample_colors <- sample_colors[names(sample_colors) %in%
+                                    c("WT_D2", "WT_D5", "WT_D7",
+                                      "WT_D9", "WT_D14")]
+
+wt_sample_colors_day <- wt_sample_colors
+names(wt_sample_colors_day) <- gsub("WT_", "", names(wt_sample_colors_day))
+
+cfko_sample_colors <- sample_colors[names(sample_colors) %in%
+                                      c("CFKO_D2", "CFKO_D5", "CFKO_D7",
+                                        "CFKO_D9", "CFKO_D14")]
+
+cfko_sample_colors_day <- cfko_sample_colors
+names(cfko_sample_colors_day) <- gsub("CFKO_", "", names(cfko_sample_colors_day))
+
+pdf(file.path(sample_dir, "images", "pseudotime_density_plots.pdf"),
+    width = 6, height = 6)
+
+print(ggplot2::ggplot(wt_plotting_df, ggplot2::aes(x = psuper, y = day,
+                                                   group = day,
+                                                   fill = day)) + 
+        ggridges::geom_density_ridges() +
+        ggplot2::scale_fill_manual(values = wt_sample_colors_day) +
+        ggplot2::ggtitle("WT sample"))
+
+print(ggplot2::ggplot(wt_plotting_df, ggplot2::aes(x = psuper,
+                                                   y = RNA_combined_celltype,
+                                                   group = RNA_combined_celltype,
+                                                   fill = RNA_combined_celltype)) + 
+        ggridges::geom_density_ridges() +
+        ggplot2::scale_fill_manual(values = all_colors) +
+        ggplot2::ggtitle("WT cell type"))
+
+print(ggplot2::ggplot(cfko_plotting_df, ggplot2::aes(x = psuper, y = day,
+                                                   group = day,
+                                                   fill = day)) + 
+        ggridges::geom_density_ridges() +
+        ggplot2::scale_fill_manual(values = cfko_sample_colors_day) +
+        ggplot2::ggtitle("CFKO sample"))
+
+print(ggplot2::ggplot(cfko_plotting_df, ggplot2::aes(x = psuper,
+                                                   y = RNA_combined_celltype,
+                                                   group = RNA_combined_celltype,
+                                                   fill = RNA_combined_celltype)) + 
+        ggridges::geom_density_ridges() +
+        ggplot2::scale_fill_manual(values = all_colors) +
+        ggplot2::ggtitle("CFKO cell type"))
+
+
+dev.off()
+
+
+# CACNA and CTFR plots ---------------------------------------------------------
+
+GOI <- c(rownames(merged_seurat)[grepl("CACNA", rownames(merged_seurat))],
+         "CFTR")
+
+
 
 
 
