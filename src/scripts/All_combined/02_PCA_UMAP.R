@@ -261,4 +261,10 @@ if(ADT){
 seurat_data$corrected_cluster <- seurat_data$RNA_cluster
 seurat_data$RNA_cluster <- seurat_data$uncorrected_cluster
 
+## Rename transitional to acinar -----------------------------------------------
+seurat_data$RNA_combined_celltype <- gsub("transitional_to_acinar[1|2]",
+                                          "transitional_to_acinar",
+                                          seurat_data$RNA_combined_celltype)
+
+
 saveRDS(seurat_data, file.path(save_dir, "rda_obj/seurat_processed.rds"))

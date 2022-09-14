@@ -29,12 +29,6 @@ sample_dir <- here("results", sample, "R_analysis")
 merged_seurat <- readRDS(file.path(sample_dir, "rda_obj",
                                    "seurat_processed.rds"))
 
-
-## Rename transitional to acinar -----------------------------------------------
-merged_seurat$RNA_combined_celltype <- gsub("transitional_to_acinar[1|2]",
-                                            "transitional_to_acinar",
-                                            merged_seurat$RNA_combined_celltype)
-
 ## Run DE ----------------------------------------------------------------------
 
 save_dir <- file.path(sample_dir, "files/DE")

@@ -164,6 +164,7 @@ invisible(lapply(de_tests, function(de_test){
   # Plot heatmap across all samples
   pdf(file.path(sample_dir, "images", "sample_heatmaps",
                 paste0(de_test, "_heatmap_average.pdf")))
+  
   print(plot_heatmap(merged_seurat, gene_list = unique(de_genes$gene),
                      meta_col = "sample", average_expression = TRUE,
                      colors = sample_colors, plot_rownames = FALSE))
@@ -683,14 +684,314 @@ print(ggplot2::ggplot(cfko_plotting_df, ggplot2::aes(x = psuper,
 
 dev.off()
 
+## Pseudotime gene plots -------------------------------------------------------
+expression_vals <- GetAssayData(merged_seurat, slot = "data")
+cfko_expression_vals <- expression_vals[ , colnames(expression_vals) %in%
+                                           rownames(cfko_plotting_df)]
+
+wt_expression_vals <- expression_vals[ , colnames(expression_vals) %in%
+                                         rownames(wt_plotting_df)]
+
+
+genes_use <- gene_lists$EP.genes[gene_lists$EP.genes %in% rownames(merged_seurat)]
+
+pdf(file.path(sample_dir, "images", "EP_genes_CFKO.pdf"),
+    width = 5, height = 4)
+
+full_plot <- ggplot2::ggplot(cfko_plotting_df, ggplot2::aes(x = psuper,
+                                                            y = EP.genes_1)) +
+  ggplot2::geom_point(ggplot2::aes(color = RNA_combined_celltype)) +
+  ggplot2::scale_color_manual(values = all_colors) + 
+  ggplot2::geom_smooth(color = "black")
+
+print(full_plot)
+
+invisible(lapply(genes_use, function(x){
+  # get gene expression
+  gene_expression <- cfko_expression_vals[x, , drop = FALSE] %>%
+    as.matrix() %>%
+    t() %>%
+    data.frame()
+  
+  # Add vals
+  if(identical(rownames(gene_expression), rownames(cfko_plotting_df))){
+    new_cfko_plotting_df <- cfko_plotting_df
+    new_cfko_plotting_df$gene <- gene_expression[[1]]
+  }
+  
+  # Make plot
+  gene_plot <- ggplot2::ggplot(new_cfko_plotting_df, ggplot2::aes(x = psuper,
+                                                                  y = gene)) +
+    ggplot2::geom_point(ggplot2::aes(color = RNA_combined_celltype)) +
+    ggplot2::scale_color_manual(values = all_colors) + 
+    ggplot2::ylab(x) +
+    ggplot2::geom_smooth(color = "black")
+  
+  print(gene_plot)
+}))
+
+
+dev.off()
+
+
+
+pdf(file.path(sample_dir, "images", "EP_genes_WT.pdf"),
+    width = 5, height = 4)
+
+full_plot <- ggplot2::ggplot(wt_plotting_df, ggplot2::aes(x = psuper,
+                                                            y = EP.genes_1)) +
+  ggplot2::geom_point(ggplot2::aes(color = RNA_combined_celltype)) +
+  ggplot2::scale_color_manual(values = all_colors) + 
+  ggplot2::geom_smooth(color = "black")
+
+print(full_plot)
+
+invisible(lapply(genes_use, function(x){
+  # get gene expression
+  gene_expression <- wt_expression_vals[x, , drop = FALSE] %>%
+    as.matrix() %>%
+    t() %>%
+    data.frame()
+  
+  # Add vals
+  if(identical(rownames(gene_expression), rownames(wt_plotting_df))){
+    new_wt_plotting_df <- wt_plotting_df
+    new_wt_plotting_df$gene <- gene_expression[[1]]
+  }
+  
+  # Make plot
+  gene_plot <- ggplot2::ggplot(new_wt_plotting_df, ggplot2::aes(x = psuper,
+                                                                  y = gene)) +
+    ggplot2::geom_point(ggplot2::aes(color = RNA_combined_celltype)) +
+    ggplot2::scale_color_manual(values = all_colors) + 
+    ggplot2::ylab(x) +
+    ggplot2::geom_smooth(color = "black")
+  
+  print(gene_plot)
+}))
+
+
+dev.off()
+
+
+# EP gene list info ------------------------------------------------------------
+
+create_sample_info <- function(seurat_object, group, group_list, genes_use,
+                               save_name){
+  # Make excel file
+  excel_wb <- openxlsx::createWorkbook()
+  
+  # If any of the groups are only seen in one comparison, then find percents
+  # with the dotplot. This is kind of slow and I could use other ways to 
+  # get percent expression but I'm lazy
+  if(sum(group_list) != length(group_list)){
+    dot_plot <- DotPlot(seurat_object, features = genes_use,
+                        scale = FALSE, group.by = group)
+    
+    dot_plot <- dot_plot$data
+  }
+  
+  # get average expression
+  average_expression <- AverageExpression(object = seurat_object,
+                                          features = genes_use,
+                                          group.by = group,
+                                          assays = "RNA")
+  
+  average_expression <- average_expression$RNA
+  
+  
+  # Get z score
+  z_score <- t(scale(t(average_expression), scale = TRUE))
+  
+  # Get percent expression and log fold change
+  # This should be between days, then between days within cell type
+  Idents(seurat_object) <- group
+  
+  all_info <- lapply(names(group_list), function(x){
+
+    # If this is true, the group was found in both WT and CFKO
+    if(group_list[[x]]){
+      markers <- FindMarkers(object = seurat_object, ident.1 = paste0("CFKO_", x),
+                             ident.2 = paste0("WT_", x),
+                             features = genes_use,
+                             logfc.threshold = 0,
+                             min.pct = 0)  
+      
+      
+      markers <- markers %>%
+        dplyr::mutate(pct.1 = 100 * pct.1, pct.2 = 100 * pct.2) %>%
+        dplyr::select(avg_log2FC, pct.1, pct.2) %>%
+        dplyr::mutate(pct_diff = pct.1 - pct.2)
+      
+      colnames(markers) <- c("avg_log2FC", paste0("CFKO_", x, "_pct"),
+                             paste0("WT_", x, "_pct"), "pct_diff")
+      
+      average_data_frame <- average_expression %>%
+        data.frame %>%
+        dplyr::select(dplyr::all_of(c(paste0("CFKO_", x), paste0("WT_", x))))
+      
+      colnames(average_data_frame) <- paste0(colnames(average_data_frame),
+                                             "_average_expr")
+      
+      zscore_df <- z_score %>%
+        data.frame %>%
+        dplyr::select(dplyr::all_of(c(paste0("CFKO_", x), paste0("WT_", x))))
+      
+      colnames(zscore_df) <- paste0(colnames(zscore_df),
+                                    "_z_score")
+      
+      markers <- markers[order(match(rownames(markers), rownames(zscore_df))), ]
+      identical(rownames(markers),rownames(average_data_frame))
+      
+      return_df <- do.call(cbind, list(average_data_frame, zscore_df, markers))
+    
+    } else {
+      type <- colnames(average_expression)[grepl(x,
+                                                 colnames(average_expression))]
+      
+      type <- gsub ("_.*", "", type)
+      
+      if(type == "CFKO"){
+        colorder <- c("avg.exp", "avg.exp.2", "zscore", "zscore.2",
+                      "avg_log2FC", "pct.exp", "pct.2", "pct_diff")
+      } else if(type == "WT"){
+        colorder <- c("avg.exp.2", "avg.exp", "zscore.2", "zscore",
+                      "avg_log2FC", "pct.2", "pct.exp", "pct_diff")        
+      } else {
+        stop("unexpected type")
+      }
+
+      
+      percent_expression <- dot_plot %>%
+        dplyr::mutate(sample_id = gsub("(CFKO_)|(WT_)", "", id)) %>%
+        dplyr::filter(sample_id == x) %>%
+        dplyr::mutate(avg_log2FC = NA, pct_diff = NA,
+                      pct.2 = NA, avg.exp.2 = NA, zscore.2 = NA) %>%
+        tibble::remove_rownames() %>%
+        tibble::column_to_rownames("features.plot")
+      
+      zscore_df <- z_score %>%
+        data.frame %>%
+        dplyr::select(dplyr::all_of(c(paste0(type, "_", x))))
+      
+      colnames(zscore_df) <- c("zscore")
+      
+      percent_expression <- percent_expression[order(match(
+        rownames(percent_expression), rownames(zscore_df))), ]
+      
+      return_df <- cbind(percent_expression, zscore_df) %>%
+        dplyr::select(all_of(colorder))
+      
+      colnames(return_df) <- c(paste0("CFKO_", x, "_average_expr"),
+                               paste0("WT_", x, "_average_expr"),
+                               paste0("CFKO_", x, "_zscore"),
+                               paste0("WT_", x, "_zscore"),
+                               "avg_log2FC",
+                               paste0("CFKO_", x, "_pct"),
+                               paste0("WT_", x, "_pct"),
+                               "pct_diff")
+      
+    }
+    
+
+    
+    openxlsx::addWorksheet(wb = excel_wb, sheetName = x)
+    openxlsx::writeData(wb = excel_wb, sheet = x, x = return_df,
+                        rowNames = TRUE)
+  })
+  
+  openxlsx::saveWorkbook(wb = excel_wb,
+                         file = save_name,
+                         overwrite = TRUE)
+}
+
+group <- "sample"
+group_list <- c("D2" = TRUE, "D5" = TRUE, "D7" = TRUE,
+                "D9" = TRUE, "D14" = TRUE)
+genes_use <- gene_lists$EP.genes[gene_lists$EP.genes %in% rownames(merged_seurat)]
+
+
+create_sample_info(seurat_object = merged_seurat,
+                   group = "sample", group_list = group_list,
+                   genes_use = genes_use,
+                   save_name = file.path(sample_dir, "files",
+                                         "ep_gene_sample_info.xlsx"))
+
+# Figure out how best to use the "group_list" to run on days for each
+# cell type. I'm envisioning making a new meta data column and 
+# doing day + cell type. Then pull them all out and only keep the day +
+# cell type when it's in both
+
+# Almost certainly a better way to do this,
+# This pulls out the cases where the cell type was identified in both days
+all_day_celltype <- merged_seurat[[]] %>%
+  dplyr::select(sample, RNA_combined_celltype, day, sample_celltype) %>%
+  dplyr::distinct() %>%
+  dplyr::mutate(celltype_day = paste(day, RNA_combined_celltype, sep = "_")) %>%
+  dplyr::group_by(celltype_day) %>%
+  dplyr::add_count() %>%
+  dplyr::mutate("find_markers" = ifelse(n > 1, TRUE, FALSE)) %>%
+  dplyr::distinct(celltype_day, .keep_all = TRUE)
+
+celltype_group_list <- all_day_celltype$find_markers
+names(celltype_group_list) <- all_day_celltype$celltype_day
+
+
+create_sample_info(seurat_object = merged_seurat,
+                   group = "sample_celltype",
+                   group_list = celltype_group_list,
+                   genes_use = genes_use,
+                   save_name = file.path(sample_dir, "files",
+                                         "ep_gene_sample_cell_type_info.xlsx"))
+
 
 # CACNA and CTFR plots ---------------------------------------------------------
 
 GOI <- c(rownames(merged_seurat)[grepl("CACNA", rownames(merged_seurat))],
          "CFTR")
 
+all_plots <- lapply(GOI, function(x){
+  umap_gene <- plotDimRed(merged_seurat, x, plot_type = "rna.umap")[[1]]
+  
+  umap_sample <- plotDimRed(merged_seurat, "sample", color = sample_colors,
+                            plot_type = "rna.umap")[[1]]
+  
+  violin_sample <- featDistPlot(merged_seurat, geneset = x, combine = FALSE,
+                                sep_by = "sample", color = sample_colors)[[1]]
+  
+  umap_celltype <- plotDimRed(merged_seurat, "RNA_combined_celltype",
+                              color = all_colors, plot_type = "rna.umap")[[1]]
+  
+  violin_celltype <- featDistPlot(merged_seurat, geneset = x, combine = FALSE,
+                                  sep_by = "RNA_combined_celltype",
+                                  color = all_colors)[[1]]
+  
+  cowplot::plot_grid(umap_gene, NULL, umap_sample, violin_sample,
+                     umap_celltype, violin_celltype, align = "hv",
+                     axis = "lr", nrow = 3, ncol = 2,
+                     labels = c("A", "", "B", "C", "D", "E"))
+})
 
 
+names(all_plots) <- GOI
+
+pdf(file.path(sample_dir, "images", "CACNA_CFTR_plots.pdf"),
+    height = 8, width = 8)
+
+print(all_plots)
+
+dev.off()
+
+# Cluster plot to figure out where to start pseudotime
+plotDimRed(merged_seurat, "RNA_cluster", plot_type = "rna.umap")
+
+# Starting cluster for CFKO = 4
+plotDimRed(merged_seurat, "RNA_cluster", plot_type = "rna.umap",
+           highlight_group = TRUE, group = 4, meta_data_col = "RNA_cluster")
+
+# Starting cluster for WT = 9
+plotDimRed(merged_seurat, "RNA_cluster", plot_type = "rna.umap",
+           highlight_group = TRUE, group = 9, meta_data_col = "RNA_cluster")
 
 
 saveRDS(merged_seurat, file.path(sample_dir, "rda_obj/seurat_processed.rds"))
