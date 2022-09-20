@@ -6,8 +6,6 @@ library(here)
 library(scAnalysisR)
 library(ggridges)
 
-source("src/scripts/functions.R")
-
 # Set theme
 ggplot2::theme_set(ggplot2::theme_classic(base_size = 10))
 
