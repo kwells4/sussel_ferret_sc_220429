@@ -32,9 +32,9 @@ cfko_dim_red <- Embeddings(cfko_seurat, reduction = "pca")[, 1:32]
 
 
 # Pull out cluster information
-wt_clusters <- wt_seurat[["RNA_cluster"]]
+wt_clusters <- wt_seurat[["sample_cluster"]]
 
-cfko_clusters <- cfko_seurat[["RNA_cluster"]]
+cfko_clusters <- cfko_seurat[["sample_cluster"]]
 
 # Save to a new directory
 save_dir <- file.path(sample_dir, "files", "slingshot")
