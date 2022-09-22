@@ -80,7 +80,7 @@ all_samples <- c(wt_samples, cfko_samples)
 ## Make plots of clusters ------------------------------------------------------
 
 cluster_plots <- lapply(all_samples, function(x){
-  plotDimRed(merged_seurat, col_by = "RNA_cluster", plot_type = "rna.umap",
+  plotDimRed(merged_seurat, col_by = "original_cluster", plot_type = "rna.umap",
              highlight_group = TRUE, group = x, meta_data_col = "sample")[[1]]
 })
 
