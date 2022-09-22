@@ -16,7 +16,7 @@ cluster_file=$data_path/CFKO_clusters.tsv
 
 start_cluster=CFKO_D2_0
 
-save_name=$data_path/WT_res.rds
+save_name=$data_path/CFKO_res.rds
 
 set -o nounset -o pipefail -o errexit -x
 
