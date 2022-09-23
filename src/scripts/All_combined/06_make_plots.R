@@ -980,16 +980,22 @@ print(all_plots)
 
 dev.off()
 
+merged_seurat$sample_cluster <- paste(merged_seurat$sample,
+                                      merged_seurat$original_cluster,
+                                      sep = "_")
+
 # Cluster plot to figure out where to start pseudotime
-plotDimRed(merged_seurat, "RNA_cluster", plot_type = "rna.umap")
+plotDimRed(merged_seurat, "sample_cluster", plot_type = "rna.umap")
 
 # Starting cluster for CFKO = 4
-plotDimRed(merged_seurat, "RNA_cluster", plot_type = "rna.umap",
-           highlight_group = TRUE, group = 4, meta_data_col = "RNA_cluster")
+plotDimRed(merged_seurat, "sample_cluster", plot_type = "rna.umap",
+           highlight_group = TRUE, group = "CFKO_D2_1",
+           meta_data_col = "sample_cluster")
 
 # Starting cluster for WT = 9
-plotDimRed(merged_seurat, "RNA_cluster", plot_type = "rna.umap",
-           highlight_group = TRUE, group = 9, meta_data_col = "RNA_cluster")
+plotDimRed(merged_seurat, "sample_cluster", plot_type = "rna.umap",
+           highlight_group = TRUE, group = "WT_D2_0",
+           meta_data_col = "sample_cluster")
 
 
 saveRDS(merged_seurat, file.path(sample_dir, "rda_obj/seurat_processed.rds"))
