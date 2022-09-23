@@ -12,11 +12,15 @@ data_path=results/All_combined/R_analysis/files/slingshot
 
 pca_file=$data_path/CFKO_pca.tsv 
 
+pca_file_all=$data_path/CFKO_pca_all.tsv
+
 cluster_file=$data_path/CFKO_clusters.tsv
 
-start_cluster=CFKO_D2_0
+start_cluster=0
 
 save_name=$data_path/CFKO_res.rds
+
+save_name_all=$data_path/CFKO_res_all.rds
 
 set -o nounset -o pipefail -o errexit -x
 
@@ -26,3 +30,10 @@ Rscript --vanilla \
     $cluster_file \
     $start_cluster \
     $save_name
+
+Rscript --vanilla \
+    $script \
+    $pca_file_all \
+    $cluster_file \
+    $start_cluster \
+    $save_name_all
