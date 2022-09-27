@@ -29,6 +29,18 @@ sample_dir <- here("results", sample, "R_analysis")
 merged_seurat <- readRDS(file.path(sample_dir, "rda_obj",
                                    "seurat_processed.rds"))
 
+
+gene_path <- here("files/GSEA_signaling_pathways_with_orthologs.xlsx")
+
+all_sheets <- openxlsx::getSheetNames(gene_path)
+
+gene_lists <- lapply(all_sheets, function(x){
+  gene_df <- openxlsx::readWorkbook(gene_path, sheet = x)
+  return(unique(gene_df$gene_id))
+})
+
+names(gene_lists) <- all_sheets
+
 ## Run DE ----------------------------------------------------------------------
 
 save_dir <- file.path(sample_dir, "files/DE")
@@ -51,7 +63,8 @@ find_sample_de_genes <- function(seurat_object, sample_1, sample_2,
                                  cell_cutoff = 20,
                                  mapping_file = NULL,
                                  mapping_gene_col = NULL,
-                                 mapping_ortholog_col = NULL){
+                                 mapping_ortholog_col = NULL,
+                                 gene_lists = NULL){
   
   excel_workbook <- createWorkbook()
   
@@ -96,6 +109,32 @@ find_sample_de_genes <- function(seurat_object, sample_1, sample_2,
     
     writeData(wb = excel_workbook, sheet = sample_2,
               x = sample2_markers)
+    
+    if (!is.null(gene_lists)) {
+      all_markers <- all_markers %>%
+        dplyr::mutate(cluster = ifelse(avg_log2FC > 0, sample_1, sample_2)) %>%
+        dplyr::mutate(avg_log2FC = abs(avg_log2FC))
+      
+      hypergeometric <- hypergeometric_test(seurat_object = seurat_subset, 
+                                            gene_list = gene_lists,
+                                            DE_table = all_markers, 
+                                            DE_p_cutoff = 0.05,
+                                            DE_lfc_cutoff = 0.5,
+                                            correction_method = "fdr")
+      write.csv(hypergeometric, file = file.path(save_dir, 
+                                                 paste0("hypergeometric_", 
+                                                        sample_1, "_",
+                                                        sample_2, ".csv")))
+      
+      full_list <- lapply(unique(hypergeometric$cluster), function(y) {
+        y <- as.character(y)
+        new_df <- hypergeometric %>% dplyr::filter(cluster == 
+                                                     y)
+        worksheet_name <- paste0(y, "_gse")
+        addWorksheet(excel_workbook, worksheet_name)
+        writeData(excel_workbook, worksheet_name, new_df)
+      })
+    }
   } else {
     # take only cases that are in both samples
     cell_info <- table(seurat_subset[[split_by]][[1]],
@@ -152,6 +191,33 @@ find_sample_de_genes <- function(seurat_object, sample_1, sample_2,
       
       writeData(wb = excel_workbook, sheet = sheet_name_2,
                 x = sample2_markers)
+      
+      if (!is.null(gene_lists)) {
+        all_markers <- return_markers %>%
+          dplyr::mutate(cluster = ifelse(avg_log2FC > 0, sample_1, sample_2)) %>%
+          dplyr::mutate(avg_log2FC = abs(avg_log2FC))
+        
+        hypergeometric <- hypergeometric_test(seurat_object = seurat_subset, 
+                                              gene_list = gene_lists,
+                                              DE_table = all_markers, 
+                                              DE_p_cutoff = 0.05,
+                                              DE_lfc_cutoff = 0.5,
+                                              correction_method = "fdr")
+        write.csv(hypergeometric, file = file.path(save_dir, 
+                                                   paste0("hypergeometric_", 
+                                                          sample_1, "_",
+                                                          sample_2,
+                                                          "_", y, ".csv")))
+        
+        full_list <- lapply(unique(hypergeometric$cluster), function(cluster_name) {
+          cluster_name <- as.character(cluster_name)
+          new_df <- hypergeometric %>% dplyr::filter(cluster == 
+                                                       cluster_name)
+          worksheet_name <- paste0(substr(y, 1, 7), "_", cluster_name, "_gse")
+          addWorksheet(excel_workbook, worksheet_name)
+          writeData(excel_workbook, worksheet_name, new_df)
+        })
+      }
     }))
   }
   
@@ -206,7 +272,8 @@ invisible(lapply(names(test_samples), function(x){
                        mapping_ortholog_col = c("Mouse.gene.name",
                                                 "Human.gene.name",
                                                 "Dog.gene.name",
-                                                "Pig.gene.name"))
+                                                "Pig.gene.name"),
+                       gene_lists = gene_lists)
   
   excel_file_path <- file.path(save_dir,
                                paste0(x, "_combined_celltype.xlsx"))
@@ -224,26 +291,28 @@ invisible(lapply(names(test_samples), function(x){
                        mapping_ortholog_col = c("Mouse.gene.name",
                                                 "Human.gene.name",
                                                 "Dog.gene.name",
-                                                "Pig.gene.name"))
+                                                "Pig.gene.name"),
+                       gene_lists = gene_lists)
   
-  excel_file_path <- file.path(save_dir,
-                               paste0(x, "_krentz_celltype.xlsx"))
-  
-  find_sample_de_genes(seurat_object = merged_seurat,
-                       sample_1 = sample_1,
-                       sample_2 = sample_2,
-                       excel_file_path = excel_file_path,
-                       split_by = celltype_two,
-                       sample_col = "orig.ident",
-                       p_value = pval, logfc = logfc,
-                       cell_cutoff = cell_cutoff,
-                       mapping_file = mapping_file,
-                       mapping_gene_col = "gene_id",
-                       mapping_ortholog_col = c("Mouse.gene.name",
-                                                "Human.gene.name",
-                                                "Dog.gene.name",
-                                                "Pig.gene.name"))
-  
+  # excel_file_path <- file.path(save_dir,
+  #                              paste0(x, "_krentz_celltype.xlsx"))
+  # 
+  # find_sample_de_genes(seurat_object = merged_seurat,
+  #                      sample_1 = sample_1,
+  #                      sample_2 = sample_2,
+  #                      excel_file_path = excel_file_path,
+  #                      split_by = celltype_two,
+  #                      sample_col = "orig.ident",
+  #                      p_value = pval, logfc = logfc,
+  #                      cell_cutoff = cell_cutoff,
+  #                      mapping_file = mapping_file,
+  #                      mapping_gene_col = "gene_id",
+  #                      mapping_ortholog_col = c("Mouse.gene.name",
+  #                                               "Human.gene.name",
+  #                                               "Dog.gene.name",
+  #                                               "Pig.gene.name"),
+  #                      gene_lists = gene_lists)
+  # 
   
 }))
 
