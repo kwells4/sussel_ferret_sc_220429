@@ -22,14 +22,20 @@ cfko_slingshot <- readRDS(file.path(all_sample_dir, "files",
                                    "slingshot", "CFKO_res.rds"))
 
 
-all_pseudotime <- slingPseudotime(cfko_slingshot)
-colnames(all_pseudotime) <- paste0("cfko_", colnames(all_pseudotime))
+cfko_pseudotime <- slingPseudotime(cfko_slingshot)
+colnames(cfko_pseudotime) <- paste0("cfko_", colnames(cfko_pseudotime))
 
-all_pseudotime <- data.frame(all_pseudotime)
+cfko_pseudotime <- data.frame(cfko_pseudotime)
 
-merged_seurat <- AddMetaData(merged_seurat, metadata = all_pseudotime)
+# Check barcodes
+dim(cfko_pseudotime)
+length(intersect(rownames(cfko_pseudotime), colnames(merged_seurat)))
 
-pseudotime_plots <- plotDimRed(merged_seurat, colnames(all_pseudotime),
+rownames(cfko_pseudotime) <- rownames(meta_mapper)
+
+merged_seurat <- AddMetaData(merged_seurat, metadata = cfko_pseudotime)
+
+pseudotime_plots <- plotDimRed(merged_seurat, colnames(cfko_pseudotime),
                                plot_type= "rna.umap")
 
 
@@ -44,20 +50,11 @@ colnames(wt_pseudotime) <- paste0("wt_", colnames(wt_pseudotime))
 
 wt_pseudotime <- data.frame(wt_pseudotime)
 
-# Rename barcodes to match
-meta_mapper <- merged_seurat[[]] %>%
-  dplyr::filter(genotype == "WT")
-
-wt_pseudotime <- wt_pseudotime[order(match(rownames(wt_pseudotime),
-                                           meta_mapper$WT_barcodes)),]
-
-rownames(wt_pseudotime) <- rownames(meta_mapper)
+# check barcodes
+dim(wt_pseudotime)
+length(intersect(rownames(wt_pseudotime), colnames(merged_seurat)))
 
 merged_seurat <- AddMetaData(merged_seurat, metadata = wt_pseudotime)
 
 pseudotime_plots <- plotDimRed(merged_seurat, colnames(wt_pseudotime),
                                plot_type= "rna.umap")
-
-
-# To do 
-# Try the WT with 2 starting populations---> remind yourself how to do this
