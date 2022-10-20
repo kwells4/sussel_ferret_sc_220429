@@ -3,6 +3,7 @@ library(scAnalysisR)
 library(Seurat)
 library(here)
 library(tidyverse)
+library(tradeSeq)
 
 # Set theme
 ggplot2::theme_set(ggplot2::theme_classic(base_size = 10))
@@ -139,3 +140,21 @@ dev.off()
 
 # Run analysis to find genes that correlate to pseudotime
 # https://statomics.github.io/tradeSeq/articles/tradeSeq.html
+
+# Already made wt_ and cfko_pseudotime with slingPseudotime 
+cfko_cellWeights <- slingCurveWeights(cfko_slingshot)
+cfko_counts <- GetAssayData(merged_seurat, slot = "data")
+cfko_counts <- cfko_counts[ , colnames(cfko_counts) %in%
+                              rownames(cfko_pseudotime)]
+
+icMat <- evaluateK(counts = cfko_counts, sds = cfko_slingshot, k = 3:10, 
+                   nGenes = 200, verbose = T)
+
+sce <- fitGAM(counts = cfko_counts,
+              pseudotime = cfko_pseudotime,
+              cellWeights = cfko_cellWeights,
+              nknots = 6, verbose = FALSE)
+
+sce <- fitGAM(counts = cfko_counts,
+              sds = cfko_slingshot,
+              nknots = 6, verbose = FALSE)

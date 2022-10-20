@@ -6,7 +6,7 @@ orthologs_file <- read.csv(here("files/orthologs/orthologs_all.csv"))
 
 species_file <- read.csv("files/Complete_Multiple_species_comparison_feret_ref_genome.csv")
 
-
+# Keep genes in both 
 orthologs_short <- orthologs_file %>%
   dplyr::filter(ferret_orth_id %in% all_of(species_file$ENS_prot_id))
 
