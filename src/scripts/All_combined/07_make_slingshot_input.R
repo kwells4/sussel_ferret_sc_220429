@@ -34,6 +34,28 @@ write_data <- function(merged_seurat, input_dir, sample_group,
   
   dim_red_sample <- Embeddings(sample_seurat, reduction = "pca")[ , 1:30]
   
+  barcode_mapping <- lapply(c(sample_seurat, subset_seurat), function(x){
+    barcode_mapping_one <- x[[]] %>%
+      dplyr::mutate(barcode = gsub("_[0-9]*", "", rownames(.))) %>%
+      dplyr::select(sample, barcode) %>%
+      dplyr::mutate(sample_barcode = paste(sample, barcode, sep  = "_"))
+    return(barcode_mapping_one)
+  })
+
+  barcode_mapping[[2]] <- barcode_mapping[[2]][
+    order(match(barcode_mapping[[2]]$sample_barcode,
+                barcode_mapping[[1]]$sample_barcode)),]
+  
+  if(!identical(barcode_mapping[[1]]$sample_barcode,
+                barcode_mapping[[2]]$sample_barcode)){
+    stop("barcodes don't match")
+  } else if (!identical(rownames(barcode_mapping[[1]]),
+                        rownames(dim_red_sample))){
+    stop("barcodes don't match")
+  }
+  
+  rownames(dim_red_sample) <- rownames(barcode_mapping[[2]])
+  
   # Save to a new directory
   save_dir <- file.path(sample_dir, "files", "slingshot")
   
@@ -49,7 +71,6 @@ write_data <- function(merged_seurat, input_dir, sample_group,
               file = file.path(save_dir, paste0(sample_group, "_pca.tsv")))
   
 }
-
 
 write_data(merged_seurat, "WT_combined", "WT", "wt_cluster")
 write_data(merged_seurat, "CFKO_combined", "CFKO", "cfko_cluster")

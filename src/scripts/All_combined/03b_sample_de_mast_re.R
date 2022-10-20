@@ -4,6 +4,7 @@ library(cowplot)
 library(openxlsx)
 library(here)
 library(scAnalysisR)
+library(SCOPfunctions)
 
 source("src/scripts/functions.R")
 
@@ -29,7 +30,6 @@ sample_dir <- here("results", sample, "R_analysis")
 merged_seurat <- readRDS(file.path(sample_dir, "rda_obj",
                                    "seurat_processed.rds"))
 
-
 gene_path <- here("files/GSEA_signaling_pathways_with_orthologs.xlsx")
 
 all_sheets <- openxlsx::getSheetNames(gene_path)
@@ -40,10 +40,11 @@ gene_lists <- lapply(all_sheets, function(x){
 })
 
 names(gene_lists) <- all_sheets
-
 ## Run DE ----------------------------------------------------------------------
 
-save_dir <- file.path(sample_dir, "files/DE")
+save_dir <- file.path(sample_dir, "files/DE_mast_re")
+
+ifelse(!dir.exists(save_dir), dir.create(save_dir), FALSE)
 
 # Seurat object is the starting object.
 # Sample 1 is the first sample
@@ -71,12 +72,22 @@ find_sample_de_genes <- function(seurat_object, sample_1, sample_2,
   Idents(seurat_object) <- sample_col
   
   seurat_subset <- subset(seurat_object, idents =
-                           c(sample_1, sample_2))
+                            c(sample_1, sample_2))
   
   if(is.null(split_by)){
-    # Just do de between the two samples
-    all_markers <- FindMarkers(seurat_subset, ident.1 = sample_1,
-                               ident.2 = sample_2)
+    all_markersUp <- SCOPfunctions::DE_MAST_RE_seurat(object = seurat_subset,
+                                                      random_effect.vars = sample_col,
+                                                      ident.1 = sample_1,
+                                                      ident.2 = sample_2)
+    
+    all_markersDown <- SCOPfunctions::DE_MAST_RE_seurat(object = seurat_subset,
+                                                      random_effect.vars = sample_col,
+                                                      ident.1 = sample_2,
+                                                      ident.2 = sample_1)
+    
+    all_markersDown$avg_logFC <- -1 * (all_markersDown$avg_logFC)
+    
+    all_markers <- rbind(all_markersUp, all_markersDown)
     
     all_markers$gene <- rownames(all_markers)
     
@@ -87,11 +98,13 @@ find_sample_de_genes <- function(seurat_object, sample_1, sample_2,
                                mapping_ortholog_col)))
       
       all_markers <- merge(all_markers, new_mapping, by.x = "gene",
-                            by.y = mapping_gene_col, all.x = TRUE,
-                            all.y = FALSE) %>%
+                           by.y = mapping_gene_col, all.x = TRUE,
+                           all.y = FALSE) %>%
         distinct() %>%
         arrange(p_val_adj)
     }
+    
+    all_markers$avg_log2FC <- all_markers$avg_logFC
     
     sample1_markers <- all_markers %>%
       filter(p_val_adj < p_value & avg_log2FC > logfc)
@@ -127,7 +140,7 @@ find_sample_de_genes <- function(seurat_object, sample_1, sample_2,
                                                         sample_2, ".csv")))
       
       full_list <- lapply(unique(hypergeometric$cluster), function(y) {
-        y <- as.character(y)
+        x <- as.character(y)
         new_df <- hypergeometric %>% dplyr::filter(cluster == 
                                                      y)
         worksheet_name <- paste0(y, "_gse")
@@ -166,11 +179,12 @@ find_sample_de_genes <- function(seurat_object, sample_1, sample_2,
         
         return_markers <- merge(return_markers, new_mapping,
                                 by.x = "gene",
-                             by.y = mapping_gene_col, all.x = TRUE,
-                             all.y = FALSE) %>%
+                                by.y = mapping_gene_col, all.x = TRUE,
+                                all.y = FALSE) %>%
           distinct() %>%
           arrange(p_val_adj)
       }
+      return_markers$avg_log2FC <- return_markers$avg_logFC
       
       sample1_markers <- return_markers %>%
         filter(p_val_adj < p_value & avg_log2FC > logfc)
@@ -188,6 +202,7 @@ find_sample_de_genes <- function(seurat_object, sample_1, sample_2,
                 x = sample1_markers)
       
       addWorksheet(wb = excel_workbook, sheetName = sheet_name_2)
+      
       
       writeData(wb = excel_workbook, sheet = sheet_name_2,
                 x = sample2_markers)
@@ -218,6 +233,7 @@ find_sample_de_genes <- function(seurat_object, sample_1, sample_2,
           writeData(excel_workbook, worksheet_name, new_df)
         })
       }
+      
     }))
   }
   
@@ -233,10 +249,21 @@ cluster_sample_de <- function(cluster_name, cluster_column,
   
   seurat_subset <- subset(seurat_object, idents = cluster_name)
   
-  Idents(seurat_subset) <- sample_column
+  Idents(seurat_object) <- sample_column
   
-  all_markers <- FindMarkers(seurat_subset, ident.1 = sample_1,
-                             ident.2 = sample_2)
+  all_markersUp <- SCOPfunctions::DE_MAST_RE_seurat(object = seurat_object,
+                                                    random_effect.vars = sample_column,
+                                                    ident.1 = sample_1,
+                                                    ident.2 = sample_2)
+  
+  all_markersDown <- SCOPfunctions::DE_MAST_RE_seurat(object = seurat_object,
+                                                      random_effect.vars = sample_column,
+                                                      ident.1 = sample_2,
+                                                      ident.2 = sample_1)
+  
+  all_markersDown$avg_logFC <- -1 * (all_markersDown$avg_logFC)
+  
+  all_markers <- rbind(all_markersUp, all_markersDown)
   
   return(all_markers)
 }
@@ -275,6 +302,7 @@ invisible(lapply(names(test_samples), function(x){
                                                 "Pig.gene.name"),
                        gene_lists = gene_lists)
   
+  print("combined_celltype")
   excel_file_path <- file.path(save_dir,
                                paste0(x, "_combined_celltype.xlsx"))
   
@@ -294,25 +322,6 @@ invisible(lapply(names(test_samples), function(x){
                                                 "Pig.gene.name"),
                        gene_lists = gene_lists)
   
-  # excel_file_path <- file.path(save_dir,
-  #                              paste0(x, "_krentz_celltype.xlsx"))
-  # 
-  # find_sample_de_genes(seurat_object = merged_seurat,
-  #                      sample_1 = sample_1,
-  #                      sample_2 = sample_2,
-  #                      excel_file_path = excel_file_path,
-  #                      split_by = celltype_two,
-  #                      sample_col = "orig.ident",
-  #                      p_value = pval, logfc = logfc,
-  #                      cell_cutoff = cell_cutoff,
-  #                      mapping_file = mapping_file,
-  #                      mapping_gene_col = "gene_id",
-  #                      mapping_ortholog_col = c("Mouse.gene.name",
-  #                                               "Human.gene.name",
-  #                                               "Dog.gene.name",
-  #                                               "Pig.gene.name"),
-  #                      gene_lists = gene_lists)
-  # 
   
 }))
 
