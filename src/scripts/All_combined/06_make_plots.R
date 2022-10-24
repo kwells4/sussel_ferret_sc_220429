@@ -616,8 +616,7 @@ wt_plotting_df$RNA_combined_celltype <- factor(wt_plotting_df$RNA_combined_cellt
                                                levels = c("acinar",
                                                           "Prolif_ductal",
                                                           "ductal",
-                                                          "transitional_to_acinar1",
-                                                          "transitional_to_acinar2",
+                                                          "transitional_to_acinar",
                                                           "Prolif_acinar",
                                                           "centroacinar",
                                                           "progenitor_like_cells"))
@@ -628,7 +627,7 @@ cfko_plotting_df$day <- factor(cfko_plotting_df$day,
 cfko_plotting_df$RNA_combined_celltype <- factor(cfko_plotting_df$RNA_combined_celltype,
                                                levels = c("acinar",
                                                           "ductal",
-                                                          "transitional_to_acinar1",
+                                                          "transitional_to_acinar",
                                                           "progenitor_like_cells",
                                                           "centroacinar"))
 

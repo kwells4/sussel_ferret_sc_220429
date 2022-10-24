@@ -34,15 +34,18 @@ sample_colors <- sample_colors[c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
 # "pseudotime" to color by the pseudotime vals or
 # a value from the metadata)
 # color = custom colors to pass
+# Max pseudotime = for aesthetics - should a few cells that are outliers 
+# be removed? This should be improved
 plotPseudotime <- function(seurat_object, lineages, gene_list,
                            col_by = "lineage", color = NULL,
-                           save_plot = NULL, ...){
+                           save_plot = NULL, max_pseudotime = NULL, ...){
   
   plot_list <- lapply(gene_list, function(x) {
     print(x)
     plotPseudotimeSingle(seurat_object = seurat_object,
                          lineages = lineages, gene = x,
-                         col_by = col_by, color = color, ...)
+                         col_by = col_by, color = color,
+                         max_pseudotime = max_pseudotime, ...)
   })
   if (!is.null(save_plot)){
     pdf(save_plot)
@@ -202,6 +205,8 @@ make_lineage_heatmaps <- function(seurat_object, lineage_name,
 
 # Analysis ---------------------------------------------------------------------
 
+
+## CFKO ------------------------------------------------------------------------
 # cfko slingshot
 cfko_slingshot <- readRDS(file.path(all_sample_dir, "files",
                                     "slingshot", "CFKO_res.rds"))
@@ -301,7 +306,7 @@ png(file.path(all_sample_dir, "images", "slingshot",
               "cfko_lineage5_heatmap_wald200_names.png"),
     width = 900, height = 1300)
 
-print(lineage_7_info$heatmap)
+print(lineage_5_info$heatmap)
 
 dev.off()
 
@@ -311,20 +316,20 @@ names(colors) <- c("cfko_Lineage2", "cfko_Lineage5")
 
 pdf(file.path(image_dir, "example_pseudotime_plots.pdf"))
 
-pseudotime_plots1 <- plotPseudotime(seurat_object,
+pseudotime_plots1 <- plotPseudotime(merged_seurat,
                                    lineages = c("cfko_Lineage5",
                                                 "cfko_Lineage2"),
                                    gene_list = c("MMP13", "ECRG4", "CLU"),
                                    col_by = "lineage", color = colors,
                                    max_pseudotime = 100)
 
-pseudotime_plots2 <- plotPseudotime(seurat_object,
+pseudotime_plots2 <- plotPseudotime(merged_seurat,
                                    lineages = c("cfko_Lineage5"),
                                    gene_list = c("MMP13", "ECRG4", "CLU"),
                                    col_by = "lineage", color = colors,
                                    max_pseudotime = 100)
 
-pseudotime_plots3 <- plotPseudotime(seurat_object,
+pseudotime_plots3 <- plotPseudotime(merged_seurat,
                                    lineages = c("cfko_Lineage2"),
                                    gene_list = c("FABP5", "ETS2", "CD46"),
                                    col_by = "lineage", color = colors,
@@ -339,26 +344,143 @@ dev.off()
 # Testing difference in expression between two end points
 diffEnd <- diffEndTest(cfko_fitgam)
 
-pseudotime_plots <- plotPseudotime(seurat_object,
+pseudotime_plots <- plotPseudotime(merged_seurat,
                                    lineages = c("cfko_Lineage2",
                                                 "cfko_Lineage7"),
                                    gene_list = c("UPK1A", "LY6D"),
                                    col_by = "lineage", color = NULL)
 
 
-pseudotime_plot2 <- plotPseudotime(seurat_object,
+pseudotime_plot2 <- plotPseudotime(merged_seurat,
                                    lineages = c("cfko_Lineage2"),
                                    gene_list = c("UPK1A", "LY6D"),
                                    col_by = "pseudotime", color = NULL)
 
 
-pseudotime_plot3 <- plotPseudotime(seurat_object,
+pseudotime_plot3 <- plotPseudotime(merged_seurat,
                                    lineages = c("cfko_Lineage2"),
                                    gene_list = c("UPK1A", "LY6D"),
                                    col_by = "lineage", color = NULL)
 
 
-pseudotime_plot4 <- plotPseudotime(seurat_object,
+pseudotime_plot4 <- plotPseudotime(merged_seurat,
                                    lineages = c("cfko_Lineage2"),
                                    gene_list = c("UPK1A", "LY6D"),
                                    col_by = "sample", color = sample_colors)
+
+
+## WT --------------------------------------------------------------------------
+
+# cfko slingshot
+wt_slingshot <- readRDS(file.path(all_sample_dir, "files",
+                                    "slingshot", "WT_res.rds"))
+
+
+wt_pseudotime <- slingPseudotime(wt_slingshot)
+
+wt_fitgam <- readRDS(file.path(all_sample_dir, "files", "slingshot", 
+                                 "WT_fitgam_sce.rda"))
+
+# Find converged genes
+table(rowData(wt_fitgam)$tradeSeq$converged)
+
+# Testing weather the average gene expression is significantly changing
+# across pseudotime
+assoRes <- associationTest(wt_fitgam)
+
+lineage_assoRes <- associationTest(wt_fitgam, lineages = TRUE)
+
+write.csv(lineage_assoRes, file.path(all_sample_dir, "files",
+                                     "slingshot",
+                                     "wt_association_test.csv"))
+
+# I like 3, 4, 5, 7 (1, 2?)
+
+# lineage_2_genes <- lineage_assoRes %>%
+#   dplyr::filter(!is.na(pvalue_2)) %>%
+#   dplyr::filter(pvalue_2 < 0.05)
+# 
+# 
+# lineage_7_genes <- lineage_assoRes %>%
+#   dplyr::filter(!is.na(pvalue_7)) %>%
+#   dplyr::filter(pvalue_7 < 0.05)
+
+image_dir <- file.path(all_sample_dir, "images", "slingshot")
+
+# Lineage 3 heatmaps
+set.seed(100)
+lineage_3_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
+                                        lineage_name = "wt_Lineage3",
+                                        lineage_number = "3",
+                                        lineage_asso_res = lineage_assoRes,
+                                        image_dir = image_dir,
+                                        sample_colors = sample_colors,
+                                        waldcutoff = 200, pval_cutoff = 0.05)
+
+callback <- function(hc, mat){
+  sv = svd(t(mat))$v[,1]
+  dend = reorder(as.dendrogram(hc), wts = sv)
+  as.hclust(dend)
+}
+
+
+png(file.path(all_sample_dir, "images", "slingshot",
+              "wt_lineage3_heatmap_wald200_names.png"),
+    width = 900, height = 2000)
+
+print(lineage_3_info$heatmap)
+
+dev.off()
+
+
+# Lineage 4 heatmaps
+lineage_4_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
+                                        lineage_name = "wt_Lineage4",
+                                        lineage_number = "4",
+                                        lineage_asso_res = lineage_assoRes,
+                                        image_dir = image_dir,
+                                        sample_colors = sample_colors,
+                                        waldcutoff = 200, pval_cutoff = 0.05)
+
+png(file.path(all_sample_dir, "images", "slingshot",
+              "wt_lineage4_heatmap_wald200_names.png"),
+    width = 900, height = 1300)
+
+print(lineage_4_info$heatmap)
+
+dev.off()
+
+# Lineage 5 heatmaps
+lineage_5_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
+                                        lineage_name = "wt_Lineage5",
+                                        lineage_number = "5",
+                                        lineage_asso_res = lineage_assoRes,
+                                        image_dir = image_dir,
+                                        sample_colors = sample_colors,
+                                        waldcutoff = 200, pval_cutoff = 0.05)
+
+png(file.path(all_sample_dir, "images", "slingshot",
+              "wt_lineage5_heatmap_wald200_names.png"),
+    width = 900, height = 1600)
+
+print(lineage_5_info$heatmap)
+
+dev.off()
+
+# Lineage 7 heatmaps
+lineage_7_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
+                                        lineage_name = "wt_Lineage7",
+                                        lineage_number = "7",
+                                        lineage_asso_res = lineage_assoRes,
+                                        image_dir = image_dir,
+                                        sample_colors = sample_colors,
+                                        waldcutoff = 200, pval_cutoff = 0.05)
+
+png(file.path(all_sample_dir, "images", "slingshot",
+              "wt_lineage7_heatmap_wald200_names.png"),
+    width = 900, height = 1600)
+
+print(lineage_7_info$heatmap)
+
+dev.off()
+

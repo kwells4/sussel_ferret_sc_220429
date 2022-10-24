@@ -25,6 +25,16 @@ sample_colors <- sample_colors[c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
                                  "CFKO_D2", "CFKO_D5", "CFKO_D7", "CFKO_D9", "CFKO_D14")]
 
 
+
+all_colors <- c("acinar" = "#D4405B",
+                "ductal" = "#A5903E",
+                "Prolif_acinar" = "#55A470",
+                "Prolif_ductal" = "#767FC9",
+                "progenitor_like_cells" = "#297878",
+                "transitional_to_acinar" = "#874652",
+                "centroacinar" = "#78295D")
+
+
 # cfko slingshot
 cfko_slingshot <- readRDS(file.path(all_sample_dir, "files",
                                    "slingshot", "CFKO_res.rds"))
@@ -88,7 +98,8 @@ all_plots <- lapply(1:length(all_curves), function(x){
                           plot_type = "rna.umap")[[1]]
   base_plot <- base_plot + ggplot2::geom_path(data = curve1_coord,
                                               ggplot2::aes(rnaUMAP_1, rnaUMAP_2),
-                                              color = "black", size = 1) 
+                                              color = "black", size = 1)  +
+    ggplot2::ggtitle(paste0("cfko_lineage", x))
   
   return(base_plot)
 })
@@ -101,6 +112,70 @@ print(all_plots)
 dev.off()
 
 # I like curves 2, 3, 4, 5, 7, 8
+
+# Plots based on cell type
+all_plots <- lapply(1:length(all_curves), function(x){
+  c <- all_curves[[x]]
+  curve1_coord <- data.frame(c$s[c$ord, c(1,2)])
+  curve1_coord$stage <- "line"
+  
+  
+  # This line cuts off the long tail... Probably a better option is
+  # to just remove unknown before running slingshot.
+  base_plot <- plotDimRed(merged_seurat, col_by = "RNA_combined_celltype",
+                          color = all_colors,
+                          plot_type = "rna.umap")[[1]]
+  base_plot <- base_plot + ggplot2::geom_path(data = curve1_coord,
+                                              ggplot2::aes(rnaUMAP_1, rnaUMAP_2),
+                                              color = "black", size = 1)   +
+    ggplot2::ggtitle(paste0("cfko_lineage", x))
+  
+  return(base_plot)
+})
+
+
+pdf(file.path(all_sample_dir, "images", "cfko_line_slingshot_celltype.pdf"))
+
+print(all_plots)
+
+dev.off()
+
+
+# Plots based on cell type only cells in lineage colored
+all_plots <- lapply(1:length(all_curves), function(x){
+  c <- all_curves[[x]]
+  curve1_coord <- data.frame(c$s[c$ord, c(1,2)])
+  curve1_coord$stage <- "line"
+  
+  lineage_name <- paste0("cfko_Lineage", x)
+  
+  merged_seurat$plot_cells <- ifelse(!is.na(merged_seurat[[lineage_name]][[1]]),
+                                     "TRUE", "FALSE")
+  
+  # This line cuts off the long tail... Probably a better option is
+  # to just remove unknown before running slingshot.
+  base_plot <- plotDimRed(merged_seurat, col_by = "RNA_combined_celltype",
+                          color = all_colors,
+                          plot_type = "rna.umap",
+                          highlight_group = TRUE,
+                          meta_data_col = "plot_cells",
+                          group = "TRUE")[[1]]
+  base_plot <- base_plot + ggplot2::geom_path(data = curve1_coord,
+                                              ggplot2::aes(rnaUMAP_1, rnaUMAP_2),
+                                              color = "black", size = 1)   +
+    ggplot2::ggtitle(paste0("cfko_lineage", x))
+  
+  return(base_plot)
+})
+
+
+pdf(file.path(all_sample_dir, "images",
+              "cfko_line_slingshot_celltype_highlight.pdf"))
+
+print(all_plots)
+
+dev.off()
+
 
 # Try out the embedCurves wt ---------------------------------------------------
 all_umap <- Embeddings(merged_seurat, reduction = "rna.umap")
@@ -124,7 +199,8 @@ all_plots <- lapply(1:length(all_curves), function(x){
                           plot_type = "rna.umap")[[1]]
   base_plot <- base_plot + ggplot2::geom_path(data = curve1_coord,
                                               ggplot2::aes(rnaUMAP_1, rnaUMAP_2),
-                                              color = "black", size = 1) 
+                                              color = "black", size = 1)   +
+    ggplot2::ggtitle(paste0("wt_lineage", x))
   
   return(base_plot)
 })
@@ -136,6 +212,73 @@ pdf(file.path(all_sample_dir, "images", "wt_line_slingshot.pdf"))
 print(all_plots)
 
 dev.off()
+
+
+
+# Plots based on cell type
+all_plots <- lapply(1:length(all_curves), function(x){
+  c <- all_curves[[x]]
+  curve1_coord <- data.frame(c$s[c$ord, c(1,2)])
+  curve1_coord$stage <- "line"
+  
+  
+  # This line cuts off the long tail... Probably a better option is
+  # to just remove unknown before running slingshot.
+  base_plot <- plotDimRed(merged_seurat, col_by = "RNA_combined_celltype",
+                          color = all_colors,
+                          plot_type = "rna.umap")[[1]]
+  base_plot <- base_plot + ggplot2::geom_path(data = curve1_coord,
+                                              ggplot2::aes(rnaUMAP_1, rnaUMAP_2),
+                                              color = "black", size = 1)  +
+    ggplot2::ggtitle(paste0("wt_lineage", x))
+  
+  return(base_plot)
+})
+
+
+pdf(file.path(all_sample_dir, "images", "wt_line_slingshot_celltype.pdf"))
+
+print(all_plots)
+
+dev.off()
+
+
+# Plots based on cell type only cells in lineage colored
+all_plots <- lapply(1:length(all_curves), function(x){
+  c <- all_curves[[x]]
+  curve1_coord <- data.frame(c$s[c$ord, c(1,2)])
+  curve1_coord$stage <- "line"
+  
+  lineage_name <- paste0("wt_Lineage", x)
+  
+  merged_seurat$plot_cells <- ifelse(!is.na(merged_seurat[[lineage_name]][[1]]),
+                                     "TRUE", "FALSE")
+  
+  # This line cuts off the long tail... Probably a better option is
+  # to just remove unknown before running slingshot.
+  base_plot <- plotDimRed(merged_seurat, col_by = "RNA_combined_celltype",
+                          color = all_colors,
+                          plot_type = "rna.umap",
+                          highlight_group = TRUE,
+                          meta_data_col = "plot_cells",
+                          group = "TRUE")[[1]]
+  base_plot <- base_plot + ggplot2::geom_path(data = curve1_coord,
+                                              ggplot2::aes(rnaUMAP_1, rnaUMAP_2),
+                                              color = "black", size = 1)  +
+    ggplot2::ggtitle(paste0("wt_lineage", x))
+  
+  return(base_plot)
+})
+
+
+pdf(file.path(all_sample_dir, "images",
+              "wt_line_slingshot_celltype_highlight.pdf"))
+
+print(all_plots)
+
+dev.off()
+
+# merged_seurat$plot_cells <- NULL
 
 saveRDS(merged_seurat, file.path(all_sample_dir, "rda_obj",
                                    "seurat_processed.rds"))
