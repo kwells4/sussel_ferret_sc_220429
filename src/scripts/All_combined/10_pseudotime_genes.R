@@ -5,6 +5,7 @@ library(here)
 library(tidyverse)
 library(tradeSeq)
 library(pheatmap)
+library(MetBrewer)
 
 # Set theme
 ggplot2::theme_set(ggplot2::theme_classic(base_size = 10))
@@ -57,7 +58,9 @@ plotPseudotime <- function(seurat_object, lineages, gene_list,
  
 plotPseudotimeSingle <- function(seurat_object, lineages, gene,
                                  col_by = "lineage", color = NULL,
-                                 max_pseudotime = NULL, ...){
+                                 max_pseudotime = NULL,
+                                 line_color = "black", alpha = 0.75,
+                                 ...){
   
   # Get data
   # If col_by is lineage or pseudotime, do this,
@@ -88,9 +91,16 @@ plotPseudotimeSingle <- function(seurat_object, lineages, gene,
                                                               y = gene,
                                                               color = col_by,
                                                               group = lineage)) +
-    ggplot2::geom_point(alpha = 0.75, size = 0.25) +
-    ggplot2::geom_smooth(method = "gam", color = "black") +
+    ggplot2::geom_point(alpha = alpha, size = 0.25) +
     ggplot2::ylab(gene)
+  
+  if(line_color == "lineage"){
+    base_plot <- base_plot +
+      ggplot2::geom_smooth(method = "gam")
+  } else {
+    base_plot <- base_plot + 
+      ggplot2::geom_smooth(method = "gam", color = line_color)
+  }
   
   # Next figure out colors, if col_by is continuous, default is 
   # viridis. If it's not continuous do RColorBrewer as I like
@@ -203,6 +213,53 @@ make_lineage_heatmaps <- function(seurat_object, lineage_name,
   
 }
 
+plot_overlapping_lineages <- function(seurat_object,
+                                      cfko_lineage_genes,
+                                      wt_lineage_genes,
+                                      cfko_lineage_name,
+                                      wt_lineage_name,
+                                      save_dir = NULL,
+                                      colors = NULL){
+  
+  if(is.null(colors)){
+    lineage_colors <- met.brewer("Egypt", 2)
+    names(lineage_colors) <- c(wt_lineage_name, cfko_lineage_name)
+    
+  }
+  cfko_lineage_df <- data.frame("cfko_cluster" = cfko_lineage_genes,
+                                 "gene" = names(cfko_lineage_genes))
+  
+  wt_lineage_df <- data.frame("wt_cluster" = wt_lineage_genes,
+                               "gene" = names(wt_lineage_genes))
+  
+  combined_lineage <- merge(cfko_lineage_df, wt_lineage_df,
+                            by = "gene", all.x = FALSE, all.y = FALSE)
+  
+  
+  if(!is.null(save_dir)){
+    all_plots <- plotPseudotime(seurat_object,
+                                lineages = c(cfko_lineage_name,
+                                             wt_lineage_name),
+                                gene_list = combined_lineage$gene,
+                                col_by = "lineage", color = lineage_colors,
+                                line_color = "lineage",
+                                alpha = 0.25)
+    
+    
+    pdf(file.path(save_dir,
+                  paste0(wt_lineage_name, "_and_", cfko_lineage_name, ".pdf")),
+        width = 4, height = 4)
+    
+    print(all_plots)
+    
+    dev.off()    
+  }
+
+  
+  return(combined_lineage)
+  
+}
+
 # Analysis ---------------------------------------------------------------------
 
 
@@ -258,6 +315,14 @@ print(lineage_2_info$heatmap)
 
 dev.off()
 
+# Get genes in each cluster
+gene_info_cfko_lineage_2 <- sort(cutree(lineage_2_info$heatmap$tree_row, k=4))
+
+# Cluster mapping
+# 1 = high late
+# 2 = high early
+# 3 = high for 50% low
+# 4 = Low high low
 
 # Lineage 7 heatmaps
 lineage_7_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
@@ -276,6 +341,13 @@ print(lineage_7_info$heatmap)
 
 dev.off()
 
+gene_info_cfko_lineage_7 <- sort(cutree(lineage_7_info$heatmap$tree_row, k=3))
+
+# Cluster mapping
+# 1 = high late
+# 2 = high early
+# 3 = random
+
 # Lineage 8 heatmaps
 lineage_8_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
                                         lineage_name = "cfko_Lineage8",
@@ -293,6 +365,12 @@ print(lineage_8_info$heatmap)
 
 dev.off()
 
+gene_info_cfko_lineage_8 <- sort(cutree(lineage_8_info$heatmap$tree_row, k=2))
+
+# Cluster mapping
+# 1 = high late end
+# 2 = high late longer
+
 # Lineage 5 heatmaps
 lineage_5_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
                                         lineage_name = "cfko_Lineage5",
@@ -309,6 +387,15 @@ png(file.path(all_sample_dir, "images", "slingshot",
 print(lineage_5_info$heatmap)
 
 dev.off()
+
+gene_info_cfko_lineage_5 <- sort(cutree(lineage_5_info$heatmap$tree_row, k=5))
+
+# Cluster mapping
+# 1 - Early, slightly lower and spottier
+# 2 - Early more consistent
+# 3 - End, less than 50%
+# 4 - Early - first half
+# 5 - End - Second half
 
 colors <- LaCroixColoR::lacroix_palette(name = "Pamplemousse", n = 2)
 
@@ -396,16 +483,53 @@ write.csv(lineage_assoRes, file.path(all_sample_dir, "files",
 
 # I like 3, 4, 5, 7 (1, 2?)
 
-# lineage_2_genes <- lineage_assoRes %>%
-#   dplyr::filter(!is.na(pvalue_2)) %>%
-#   dplyr::filter(pvalue_2 < 0.05)
-# 
-# 
-# lineage_7_genes <- lineage_assoRes %>%
-#   dplyr::filter(!is.na(pvalue_7)) %>%
-#   dplyr::filter(pvalue_7 < 0.05)
-
 image_dir <- file.path(all_sample_dir, "images", "slingshot")
+
+# Lineage 1 heatmaps
+set.seed(100)
+lineage_1_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
+                                        lineage_name = "wt_Lineage1",
+                                        lineage_number = "1",
+                                        lineage_asso_res = lineage_assoRes,
+                                        image_dir = image_dir,
+                                        sample_colors = sample_colors,
+                                        waldcutoff = 200, pval_cutoff = 0.05)
+
+
+png(file.path(all_sample_dir, "images", "slingshot",
+              "wt_lineage1_heatmap_wald200_names.png"),
+    width = 900, height = 2000)
+
+print(lineage_1_info$heatmap)
+
+dev.off()
+
+gene_info_wt_lineage_1 <- sort(cutree(lineage_1_info$heatmap$tree_row, k=10))
+
+plot_genes <- lapply(1:10, function(x){
+  return_genes <- gene_info_wt_lineage_1[gene_info_wt_lineage_1 == x][1:2]
+  return(return_genes)
+})
+
+plot_genes <- unlist(plot_genes)
+
+pseudotime_plot <- plotPseudotime(merged_seurat,
+                                  lineages = c("wt_Lineage1"),
+                                  gene_list = names(plot_genes),
+                                  col_by = "lineage", color = NULL)
+
+
+# Cluster mapping
+# 1 - High low high low
+# 2 - Low High, low
+# 3 - Low high low - sharper
+# 4 - High low
+# 5 - high low high
+# 6 - High low (slightly low to start)
+# 7 - low high 
+# 8 - low high low
+# 9 - low high low (less stable)
+# 10 - low high
 
 # Lineage 3 heatmaps
 set.seed(100)
@@ -432,6 +556,23 @@ print(lineage_3_info$heatmap)
 
 dev.off()
 
+gene_info_wt_lineage_3 <- sort(cutree(lineage_3_info$heatmap$tree_row, k=5))
+
+pseudotime_plot <- plotPseudotime(merged_seurat,
+                                   lineages = c("wt_Lineage3"),
+                                   gene_list = c("BMP3", "LTF",
+                                                 "PROM1", "NT5DC2",
+                                                 "SLC34A2", "LIMCH1",
+                                                 "INKA1", "IMPDH2",
+                                                 "ITPK1", "MALL"),
+                                   col_by = "lineage", color = NULL)
+
+# Cluster mapping
+# 1 - High late, no expression early
+# 2 - Low High, low
+# 3 - Low high low - slightly later
+# 4 - High low
+# 5 - End - second half
 
 # Lineage 4 heatmaps
 lineage_4_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
@@ -450,6 +591,24 @@ print(lineage_4_info$heatmap)
 
 dev.off()
 
+gene_info_wt_lineage_4 <- sort(cutree(lineage_4_info$heatmap$tree_row, k=5))
+
+pseudotime_plot <- plotPseudotime(merged_seurat,
+                                  lineages = c("wt_Lineage4"),
+                                  gene_list = c("CEBPD", "RGS12",
+                                                "TXN", "DCXR",
+                                                "ICAM1", "MUC16",
+                                                "LAMB3", "AHNAK",
+                                                "MGST3", "EIF4EBP1"),
+                                  col_by = "lineage", color = NULL)
+
+# Cluster mapping
+# 1 - High to low
+# 2 - Low High, low
+# 3 - Low high 
+# 4 - High low high
+# 5 - low high low
+
 # Lineage 5 heatmaps
 lineage_5_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
                                         lineage_name = "wt_Lineage5",
@@ -466,6 +625,23 @@ png(file.path(all_sample_dir, "images", "slingshot",
 print(lineage_5_info$heatmap)
 
 dev.off()
+
+gene_info_wt_lineage_5 <- sort(cutree(lineage_5_info$heatmap$tree_row, k=8))
+
+
+# TODO
+# pseudotime_plot <- plotPseudotime(merged_seurat,
+#                                   lineages = c("wt_Lineage4"),
+#                                   gene_list = c("CEBPD", "RGS12",
+#                                                 "TXN", "DCXR",
+#                                                 "ICAM1", "MUC16",
+#                                                 "LAMB3", "AHNAK",
+#                                                 "MGST3", "EIF4EBP1"),
+#                                   col_by = "lineage", color = NULL)
+
+# Cluster mapping
+
+
 
 # Lineage 7 heatmaps
 lineage_7_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
@@ -484,3 +660,154 @@ print(lineage_7_info$heatmap)
 
 dev.off()
 
+gene_info_wt_lineage_7 <- sort(cutree(lineage_7_info$heatmap$tree_row, k=4))
+
+# TODO
+# pseudotime_plot <- plotPseudotime(merged_seurat,
+#                                   lineages = c("wt_Lineage4"),
+#                                   gene_list = c("CEBPD", "RGS12",
+#                                                 "TXN", "DCXR",
+#                                                 "ICAM1", "MUC16",
+#                                                 "LAMB3", "AHNAK",
+#                                                 "MGST3", "EIF4EBP1"),
+#                                   col_by = "lineage", color = NULL)
+
+# Cluster mapping
+
+# Plots of lineages alone ------------------------------------------------------
+lineage_colors_base <- met.brewer("Egypt", 2)
+
+# Plots of lineages alone
+pdf(file.path(all_sample_dir, "images", "slingshot",
+              "expression_over_time",
+              "wt_lineage1.pdf"),
+    width = 4, height = 4)
+
+lineage_colors <- lineage_colors_base[1]
+names(lineage_colors) <- "wt_Lineage1"
+
+all_plots <- plotPseudotime(merged_seurat,
+                            lineages = c("wt_Lineage1"),
+                            gene_list = names(gene_info_wt_lineage_1),
+                            col_by = "lineage", color = lineage_colors,
+                            line_color = "lineage",
+                            alpha = 0.25)
+
+print(all_plots)
+
+dev.off()
+
+pdf(file.path(all_sample_dir, "images", "slingshot",
+              "expression_over_time",
+              "wt_lineage4.pdf"),
+    width = 4, height = 4)
+
+lineage_colors <- lineage_colors_base[1]
+names(lineage_colors) <- "wt_Lineage4"
+
+all_plots <- plotPseudotime(merged_seurat,
+                            lineages = c("wt_Lineage4"),
+                            gene_list = names(gene_info_wt_lineage_4),
+                            col_by = "lineage", color = lineage_colors,
+                            line_color = "lineage",
+                            alpha = 0.25)
+
+print(all_plots)
+
+dev.off()
+
+lineage_colors <- lineage_colors_base[2]
+names(lineage_colors) <- "cfko_Lineage2"
+pdf(file.path(all_sample_dir, "images", "slingshot",
+              "expression_over_time",
+              "cfko_lineage2.pdf"),
+    width = 4, height = 4)
+
+all_plots <- plotPseudotime(merged_seurat,
+                            lineages = c("cfko_Lineage2"),
+                            gene_list = names(gene_info_cfko_lineage_2),
+                            col_by = "lineage", color = lineage_colors,
+                            line_color = "lineage",
+                            alpha = 0.25)
+
+print(all_plots)
+
+dev.off()
+
+
+# Comparing WT and CF ----------------------------------------------------------
+
+# WT lineage 1
+# Cluster mapping
+# 1 - High low high low
+# 2 - Low High, low
+# 3 - Low high low - sharper
+# 4 - High low
+# 5 - high low high
+# 6 - High low (slightly low to start)
+# 7 - low high 
+# 8 - low high low
+# 9 - low high low (less stable)
+# 10 - low high
+
+# WT lineage 4
+# Cluster mapping
+# 1 - High to low
+# 2 - Low High, low
+# 3 - Low high 
+# 4 - High low high
+# 5 - low high low
+
+# CFKO lineage 2
+# Cluster mapping
+# 1 = low high
+# 2 = high low
+# 3 = high for 50% low
+# 4 = Low high low
+
+# Lineage colors
+lineage_colors_base <- met.brewer("Egypt", 2)
+
+# CFKO lineage 2 and WT lineage 4
+combined_lineage <- 
+  plot_overlapping_lineages(seurat_object = merged_seurat,
+                            cfko_lineage_genes = gene_info_cfko_lineage_2,
+                            wt_lineage_genes = gene_info_wt_lineage_4,
+                            cfko_lineage_name = "cfko_Lineage2",
+                            wt_lineage_name = "wt_Lineage4",
+                            save_dir = file.path(all_sample_dir, "images", 
+                                                 "slingshot",
+                                                 "expression_over_time"))
+
+
+
+# 1 cfko + 4 wt look good
+# 4 cfko + 3 wt look good
+# 1 cfko + 2 wt look good
+
+genes_to_plot <- c("LOC123388619", "LOC123388635",
+                   "MUC4", "TXN", "UGGT1")
+
+
+lineage_colors <- lineage_colors_base
+names(lineage_colors) <- c("wt_Lineage4", "cfko_Lineage2")
+
+different_plots <- plotPseudotime(merged_seurat,
+                                   lineages = c("cfko_Lineage2",
+                                                "wt_Lineage4"),
+                                   gene_list = genes_to_plot,
+                                   col_by = "lineage", color = lineage_colors,
+                                  line_color = "lineage",
+                                  alpha = 0.25)
+
+
+# CFKO lineage 2 and WT lineage 1
+combined_lineage <- 
+  plot_overlapping_lineages(seurat_object = merged_seurat,
+                            cfko_lineage_genes = gene_info_cfko_lineage_2,
+                            wt_lineage_genes = gene_info_wt_lineage_1,
+                            cfko_lineage_name = "cfko_Lineage2",
+                            wt_lineage_name = "wt_Lineage1",
+                            save_dir = file.path(all_sample_dir, "images", 
+                                                 "slingshot",
+                                                 "expression_over_time"))
