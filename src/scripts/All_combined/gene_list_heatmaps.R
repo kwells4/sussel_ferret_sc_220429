@@ -78,38 +78,33 @@ subset_seurat <- subset(subset_seurat, features = names(expressed_genes))
 
 
 make_heatmaps <- function(seurat_object,
-                          plot_list){
+                          plot_list,
+                          meta_col = "sample_celltype",
+                          name_addition = ""){
   plot_genes <- gene_lists[[plot_list]]
   
   fig_height <- round(length(plot_genes) / 10)
   
   # Make meta data and colors
   meta_df <- seurat_object[[c("sample", "RNA_combined_celltype",
-                              "sample_celltype")]]
-  meta_ave <- data.frame(table(paste0(seurat_object$sample, ";",
-                                      seurat_object$RNA_combined_celltype)))
+                              meta_col)]]
   
-  meta_ave$RNA_combined_celltype <- gsub(".*_D[0-9]+;", "", meta_ave$Var1)
-  meta_ave$sample <- gsub(";.*$", "", meta_ave$Var1)
-  meta_ave$Var1 <- NULL
-  meta_ave$Freq <- NULL
-  meta_ave$sample_celltype <- paste(meta_ave$sample,
-                                    meta_ave$RNA_combined_celltype,
-                                    sep = "_")
   
-  meta_ave$sample_celltype <- factor(meta_ave$sample_celltype)
+  meta_ave <- meta_df
+  rownames(meta_ave) <- NULL
+  meta_ave <- distinct(meta_ave)
+  rownames(meta_ave) <- meta_ave[[meta_col]]
   
-  rownames(meta_ave) <- meta_ave$sample_celltype
+  
   color_list <- list("sample" = sample_colors,
                      "RNA_combined_celltype" = all_colors)
-  
-  
+
   
   # Plot heatmap across all cell types
   pdf(file.path(sample_dir, "images", "gene_list_heatmap",
                 paste0(plot_list, "_heatmap_average.pdf")))
   print(plot_heatmap(seurat_object, gene_list = unique(plot_genes),
-                     meta_col = "sample_celltype", average_expression = TRUE,
+                     meta_col = meta_col, average_expression = TRUE,
                      colors = sample_colors, plot_rownames = FALSE,
                      meta_df = meta_ave, color_list = color_list,
                      plot_meta_col = FALSE, cluster_rows = TRUE,
@@ -121,7 +116,7 @@ make_heatmaps <- function(seurat_object,
                 paste0(plot_list, "_heatmap_average_labeled.pdf")),
       width = 8, height = fig_height)
   print(plot_heatmap(seurat_object, gene_list = unique(plot_genes),
-                     meta_col = "sample_celltype", average_expression = TRUE,
+                     meta_col = meta_col, average_expression = TRUE,
                      colors = sample_colors, plot_rownames = TRUE,
                      meta_df = meta_ave, color_list = color_list,
                      plot_meta_col = FALSE,
@@ -133,7 +128,7 @@ make_heatmaps <- function(seurat_object,
                 paste0(plot_list, "_heatmap_cells.pdf")))
   
   print(plot_heatmap(seurat_object, gene_list = unique(plot_genes),
-                     meta_col = "sample_celltype", average_expression = FALSE,
+                     meta_col = meta_col, average_expression = FALSE,
                      colors = sample_colors, plot_rownames = FALSE,
                      meta_df = meta_df, color_list = color_list,
                      plot_meta_col = FALSE))
@@ -145,7 +140,7 @@ make_heatmaps <- function(seurat_object,
       width = 8, height = fig_height)
   
   print(plot_heatmap(seurat_object, gene_list = unique(plot_genes),
-                     meta_col = "sample_celltype", average_expression = FALSE,
+                     meta_col = meta_col, average_expression = FALSE,
                      colors = sample_colors, plot_rownames = TRUE,
                      meta_df = meta_df, color_list = color_list,
                      plot_meta_col = FALSE))
@@ -155,8 +150,22 @@ make_heatmaps <- function(seurat_object,
 }
 
 
+subset_seurat$sample_celltype <- factor(subset_seurat$sample_celltype)
+
 for (plot_name in names(gene_lists)){
   print(plot_name)
   
   make_heatmaps(subset_seurat, plot_name)
+}
+
+subset_seurat$celltype_sample <- paste(subset_seurat$RNA_combined_celltype,
+                                       subset_seurat$sample, sep = "_")
+
+subset_seurat$celltype_sample <- factor(subset_seurat$celltype_sample)
+
+for (plot_name in names(gene_lists)){
+  print(plot_name)
+  
+  make_heatmaps(subset_seurat, plot_name, meta_col = "celltype_sample",
+                name_addition = "new_order")
 }

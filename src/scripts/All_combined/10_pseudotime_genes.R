@@ -219,19 +219,31 @@ plot_overlapping_lineages <- function(seurat_object,
                                       cfko_lineage_name,
                                       wt_lineage_name,
                                       save_dir = NULL,
-                                      colors = NULL){
+                                      colors = NULL,
+                                      type = "intersection"){
   
   if(is.null(colors)){
     lineage_colors <- met.brewer("Egypt", 2)
     names(lineage_colors) <- c(wt_lineage_name, cfko_lineage_name)
     
   }
+  
+  if(type == "intersection"){
+    plot_genes <- intersect(names(cfko_lineage_genes),
+                            names(wt_lineage_genes))
+  } else if(type =="difference") {
+    plot_genes <- unique(c(setdiff(names(cfko_lineage_genes),
+                                   names(wt_lineage_genes)),
+                           setdiff(names(wt_lineage_genes),
+                                   names(cfko_lineage_genes))))
+  }
+  
   cfko_lineage_df <- data.frame("cfko_cluster" = cfko_lineage_genes,
                                  "gene" = names(cfko_lineage_genes))
-  
+
   wt_lineage_df <- data.frame("wt_cluster" = wt_lineage_genes,
                                "gene" = names(wt_lineage_genes))
-  
+
   combined_lineage <- merge(cfko_lineage_df, wt_lineage_df,
                             by = "gene", all.x = FALSE, all.y = FALSE)
   
@@ -240,14 +252,15 @@ plot_overlapping_lineages <- function(seurat_object,
     all_plots <- plotPseudotime(seurat_object,
                                 lineages = c(cfko_lineage_name,
                                              wt_lineage_name),
-                                gene_list = combined_lineage$gene,
+                                gene_list = plot_genes,
                                 col_by = "lineage", color = lineage_colors,
                                 line_color = "lineage",
                                 alpha = 0.25)
     
     
     pdf(file.path(save_dir,
-                  paste0(wt_lineage_name, "_and_", cfko_lineage_name, ".pdf")),
+                  paste0(wt_lineage_name, "_and_", cfko_lineage_name,
+                         "_", type, ".pdf")),
         width = 4, height = 4)
     
     print(all_plots)
@@ -780,6 +793,17 @@ combined_lineage <-
                                                  "expression_over_time"))
 
 
+combined_lineage <- 
+  plot_overlapping_lineages(seurat_object = merged_seurat,
+                            cfko_lineage_genes = gene_info_cfko_lineage_2,
+                            wt_lineage_genes = gene_info_wt_lineage_4,
+                            cfko_lineage_name = "cfko_Lineage2",
+                            wt_lineage_name = "wt_Lineage4",
+                            save_dir = file.path(all_sample_dir, "images", 
+                                                 "slingshot",
+                                                 "expression_over_time"),
+                            type = "difference")
+
 
 # 1 cfko + 4 wt look good
 # 4 cfko + 3 wt look good
@@ -811,3 +835,14 @@ combined_lineage <-
                             save_dir = file.path(all_sample_dir, "images", 
                                                  "slingshot",
                                                  "expression_over_time"))
+
+combined_lineage <- 
+  plot_overlapping_lineages(seurat_object = merged_seurat,
+                            cfko_lineage_genes = gene_info_cfko_lineage_2,
+                            wt_lineage_genes = gene_info_wt_lineage_1,
+                            cfko_lineage_name = "cfko_Lineage2",
+                            wt_lineage_name = "wt_Lineage1",
+                            save_dir = file.path(all_sample_dir, "images", 
+                                                 "slingshot",
+                                                 "expression_over_time"),
+                            type = "difference")

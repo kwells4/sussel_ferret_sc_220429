@@ -223,3 +223,5 @@ print(plot_heatmap(merged_seurat, gene_list = development_genes,
                    average_expression = TRUE,
                    colors = sample_colors, plot_rownames = TRUE,
                    cluster_rows = TRUE))
+
+dev.off()
