@@ -146,6 +146,8 @@ invisible(lapply(de_tests, function(de_test){
   
   excel_sheets <- openxlsx::getSheetNames(excel_file)
   
+  excel_sheets <- excel_sheets[!grepl("gse", excel_sheets)]
+  
   de_genes <- lapply(excel_sheets, function(x){
     de_df <- openxlsx::readWorkbook(excel_file, sheet = x)
     de_df$up_in <- x
@@ -216,6 +218,9 @@ invisible(lapply(de_tests, function(de_test){
   excel_file <- file.path(de_directory, paste0(de_test, ".xlsx"))
   
   excel_sheets <- openxlsx::getSheetNames(excel_file)
+  
+  excel_sheets <- excel_sheets[!grepl("gse", excel_sheets)]
+  
   
   de_genes <- lapply(excel_sheets, function(x){
     de_df <- openxlsx::readWorkbook(excel_file, sheet = x)
@@ -497,6 +502,18 @@ pdf(file.path(sample_dir, "images", "combined_cell_type_umap.pdf"),
 print(all_cell_types)
 
 dev.off()
+
+combined_plot <- plotDimRed(merged_seurat, "RNA_combined_celltype", 
+                            plot_type = "rna.umap",
+                            color = all_colors)[[1]]
+
+pdf(file.path(sample_dir, "images", "combined_cell_type_umap_all.pdf"),
+    width = 15, height = 10)
+print(combined_plot)
+
+dev.off()
+
+
 
 
 # Umap of cell types -----------------------------------------------------------
