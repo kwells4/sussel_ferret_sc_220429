@@ -235,4 +235,22 @@ invisible(lapply(names(all_violins), function(x){
 ## UMAPs -----------------------------------------------------------------------
 # Separated by genotype, colored by celltype
 
+all_plots <- lapply(unique(seurat_data$genotype), function(x){
+  plotDimRed(seurat_data, col_by = "celltype", color = all_colors2,
+             highlight_group = TRUE, group = x, 
+             meta_data_col = "genotype",
+             plot_type = "rna.umap", ggrastr = TRUE)[[1]]
+})
+
+names(all_plots) <- unique(seurat_data$genotype)
+
+all_cell_types <- cowplot::plot_grid(all_plots$WT,
+                                     all_plots$CFKO,
+                                     nrow = 1, ncol = 2)
+
+pdf(file.path(fig_dir, "genotype_combined_cell_type_umap.pdf"),
+    width = 10, height = 5)
+print(all_cell_types)
+
+dev.off()
 ## Heatmaps of gene lists ------------------------------------------------------
