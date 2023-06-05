@@ -7,7 +7,7 @@ library(scAnalysisR)
 # Set theme
 ggplot2::theme_set(ggplot2::theme_classic(base_size = 10))
 
-sample <- "All_combined"
+sample <- "All_combined_2_9"
 
 normalization_method <- "log" # can be SCT or log
 
