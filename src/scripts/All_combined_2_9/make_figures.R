@@ -127,11 +127,86 @@ invisible(lapply(de_tests, function(de_test){
 }))
 
 # Progenitor centroacinar DE at day 9
+### Cell type DE ---------------------------------------------------------------
+seurat_data$sample_celltype <- paste(seurat_data$sample,
+                                     seurat_data$celltype,
+                                     sep = "_")
+
+# Grab out results for that test
+de_test <- "D9_combined_celltype"
+
+excel_file <- file.path(de_directory, paste0(de_test, ".xlsx"))
+
+excel_sheets <- openxlsx::getSheetNames(excel_file)
+
+excel_sheets <- excel_sheets[!grepl("gse", excel_sheets)]
+
+
+de_genes <- lapply(excel_sheets, function(x){
+  de_df <- openxlsx::readWorkbook(excel_file, sheet = x)
+  de_df$up_in <- x
+  return(de_df)
+})
+
+names(de_genes) <- excel_sheets
+
+de_genes <- do.call(rbind, de_genes)
+
+
+#### Progenitor centroacinar DE at day 9 ---------------------------------------
+keep_celltype <- "centroacinar_progenitor"
+
+test_de <- de_genes %>%
+  dplyr::filter(grepl(paste0(keep_celltype, "$"), up_in))
+
+fig_height <- round(nrow(test_de) / 10)
+
+# Plot heatmaps across one cell type all samples
+test_de$celltype <- gsub(".*_D[0-9]+_", "", 
+                         test_de$up_in)
+
+celltype_seurat <- subset(seurat_data,
+                          subset = celltype == keep_celltype)
+  
+celltype_seurat$sample <- droplevels(celltype_seurat$sample)
+
+# Plot heatmap across all samples
+pdf(file.path(fig_dir,
+              paste0(de_test, "_", keep_celltype,
+                     "_heatmap_average.pdf")))
+print(plot_heatmap(celltype_seurat, gene_list = unique(test_de$gene),
+                   meta_col = "sample", average_expression = TRUE,
+                   colors = sample_colors, plot_rownames = FALSE))
+
+dev.off()
+
 
 # Centroacinar DE at day 9
+keep_celltype <- "centroacinar"
 
-## Violin plots ----------------------------------------------------------------
+test_de <- de_genes %>%
+  dplyr::filter(grepl(paste0(keep_celltype, "$"), up_in))
 
+fig_height <- round(nrow(test_de) / 10)
+
+# Plot heatmaps across one cell type all samples
+test_de$celltype <- gsub(".*_D[0-9]+_", "", 
+                         test_de$up_in)
+
+celltype_seurat <- subset(seurat_data,
+                          subset = celltype == keep_celltype)
+
+celltype_seurat$sample <- droplevels(celltype_seurat$sample)
+
+# Plot heatmap across all samples
+pdf(file.path(fig_dir,
+              paste0(de_test, "_", keep_celltype,
+                     "_heatmap_average.pdf")))
+print(plot_heatmap(celltype_seurat, gene_list = unique(test_de$gene),
+                   meta_col = "sample", average_expression = TRUE,
+                   colors = sample_colors, plot_rownames = FALSE))
+
+dev.off()
 
 ## Pseudotime plots ------------------------------------------------------------
 
