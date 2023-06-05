@@ -208,6 +208,25 @@ print(plot_heatmap(celltype_seurat, gene_list = unique(test_de$gene),
 
 dev.off()
 
+## Violin plots ----------------------------------------------------------------
+violin_genes <- c("ATOX1", "GATA3", "LAMB1", "PAX6",
+                  "PDIA3", "TMSB10", "DKK1", "HES1",
+                  "IGFBP7", "GAS6", "SLC25A13",
+                  "ITGB1", "SPP1", "LASP1")
+
+all_violins <- featDistPlot(seurat_data, violin_genes,
+                            sep_by = "sample", 
+                            color = sample_colors,
+                            combine = FALSE)
+
+invisible(lapply(names(all_violins), function(x){
+  violin_plot <- all_violins[[x]] +
+    ggplot2::ylab("") +
+    ggplot2::ggtitle(x)
+  
+  pdf(file.path(fig_dir, paste0(x, "_violin.pdf")))
+  print(violin)
+}))
 ## Pseudotime plots ------------------------------------------------------------
 
 
