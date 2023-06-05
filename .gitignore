@@ -29,4 +29,6 @@ results_introns/*/outs/*
 !results_introns/*/outs/web_summary.html
 *.gtf
 *.zip
-notessrc/*/*/*.html
+notes
+src/*/*/*.html
+manuscript
