@@ -3,14 +3,22 @@ clustifyr_orthologs <- function (seurat_object, ref_mat, save_dir,
                                  mapping_gene_col, mapping_ortholog_col,
                                  assay = "RNA", nfeatures = 1000,
                                  clusters = "RNA_cluster", 
-                                 plot_type = "rna.umap", cor_cutoff = 0.5) {
+                                 plot_type = "rna.umap", cor_cutoff = 0.5,
+                                 features = NULL) {
   ifelse(!dir.exists(file.path(save_dir, "images")), 
          dir.create(file.path(save_dir, "images")), FALSE)
   ifelse(!dir.exists(file.path(save_dir, "files")), 
          dir.create(file.path(save_dir,  "files")), FALSE)
-  seurat_var <- FindVariableFeatures(seurat_object, assay = assay, 
-                                     selection.method = "vst",
-                                     nfeatures = nfeatures)
+  
+  if(is.null(features)){
+    seurat_var <- FindVariableFeatures(seurat_object, assay = assay, 
+                                       selection.method = "vst",
+                                       nfeatures = nfeatures)    
+  } else {
+    seurat_var <- seurat_object
+    VariableFeatures(seurat_var) <- features
+  }
+
   
   # Keep only genes in both
   seurat_mat <- GetAssayData(object = seurat_var, slot = "data")
