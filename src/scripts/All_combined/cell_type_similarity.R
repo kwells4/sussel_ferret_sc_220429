@@ -63,8 +63,12 @@ pseudobulk <- pseudobulk$RNA
 all_corr <- cor(pseudobulk)
 all_corr <- round(all_corr, digits = 2)
 
-pheatmap::pheatmap(all_corr, display_numbers = all_corr)
+pdf(file.path(sample_dir, "images", "celltype_correlations.pdf"),
+    width = 20, height = 20)
+pheatmap::pheatmap(all_corr, display_numbers = all_corr, cluster_rows = FALSE,
+                   cluster_cols = FALSE)
 
+dev.off()
 
 all_corr <- all_corr[grepl("CFKO", rownames(all_corr)),
                      grepl("CFKO", colnames(all_corr))]

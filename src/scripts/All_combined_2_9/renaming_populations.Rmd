@@ -1,0 +1,213 @@
+---
+title: "Updating cell types"
+author: "Kristen Wells"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    highlight: "tango"
+    df_print: "paged"
+    code_folding: "hide"
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = F, 
+  warning = F,
+  comment = ""
+)
+```
+
+# Background
+
+I renamed samples by combining all cells and repeating the cell type naming analysis. Overall, the majority of cells have the same cell type in the indidual and combined naming, but a few cells do change. The main shift is between ductal and acinar and between centroacinar/progenitor like/transitional to acinar.
+
+```{r}
+library(Seurat)
+library(tidyverse)
+library(cowplot)
+library(harmony)
+library(here)
+library(scAnalysisR)
+library(viridis)
+
+# Set theme
+ggplot2::theme_set(ggplot2::theme_classic(base_size = 10))
+
+normalization_method <- "log" # can be SCT or log
+
+sample <- "All_combined_2_9"
+
+if(normalization_method == "SCT"){
+  SCT <- TRUE
+  seurat_assay <- "SCT"
+} else {
+  SCT <- FALSE
+  seurat_assay <- "RNA"
+}
+
+# Set directories
+base_dir <- here()
+
+base_dir_proj <- file.path(base_dir, "results", sample)
+save_dir <- file.path(base_dir_proj, "R_analysis")
+
+# Read in the data
+seurat_data <- readRDS(file.path(save_dir, "rda_obj", "seurat_processed.rds"))
+
+mapping_file <- read.csv(here("files/species_mapping_file.csv"))
+
+
+all_colors2 <- c("acinar" = "#D4405B",
+                 "ductal" = "#A5903E",
+                 "Prolif_acinar" = "#55A470",
+                 "Prolif_ductal" = "#767FC9",
+                 "centroacinar_progenitor" = "#297878",
+                 "centroacinar" = "#78295D")
+
+all_colors3 <- c("acinar" = "#D4405B",
+                 "ductal" = "#A5903E",
+                 "Prolif_acinar" = "#55A470",
+                 "Prolif_ductal" = "#767FC9",
+                 "centroacinar1" = "#297878",
+                 "centroacinar2" = "#78295D")
+
+sample_colors <- as.character(LaCroixColoR::lacroix_palette("Coconut", 10))
+sample_colors[5] <- "#F4E3C7"
+names(sample_colors) <- c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
+                          "CFKO_D14", "CFKO_D9", "CFKO_D7", "CFKO_D5", "CFKO_D2")
+sample_colors <- sample_colors[c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
+                                 "CFKO_D2", "CFKO_D5", "CFKO_D7", "CFKO_D9", "CFKO_D14")]
+
+sample_colors <- sample_colors[!(grepl("D14", names(sample_colors)))]
+
+seurat_data <- readRDS(file.path(save_dir, "rda_obj/seurat_processed.rds"))
+
+```
+
+# Comparing previous vs new celltypes
+When looking at the previous vs new celltypes, the celltypes are largely the same. Below, I am showing a comparison of cells in the new vs old celltypes. The y axis is the prevous labels and the x axis is the new labels. The color shows the proportion of cells in the new cell type that were originally in the previous cell type. So the dark red in the ductal means that over 90% of the cells that were called "ductal" in the new cell type naming were called ductal in our oringal cell types.
+
+Overall, there isn't a lot that changes. The biggest difference is that many of the acinar cells are now called ductal. This isn't surprising to me as in our original analysis, both the ductal and acinar cells had very similar scores. Same with proliferating acinar and proliferating ductal. The other difference is that there was some movement of cells between the centroacinar 1 and 2 (centroacinar and centroacinar_progenitor). These cell types are also closely related and looked very similar in our correlation heatmap so I'm not surprised by this either.
+
+```{r, fig.width=6, fig.height=6}
+cm <- confusionMatrix(seurat_data$final_celltype, 
+                      seurat_data$final_ind_celltype)
+
+cm <- cm / rowSums(cm)
+
+pheatmap::pheatmap(cm, main = "original vs new celltypes")
+```
+
+I also looked at the analysis without combining progenitor like and transitional to acinar. Overall when chainging the analysis these populations seem less stable so it is probably good that we combine them (when combined they are much more stable). What was previously tranisitonal to acinar 1 in the CKFO became centroacinar.
+
+```{r, fig.width=6, fig.height=6}
+cm <- confusionMatrix(seurat_data$orig_combined_celltype, 
+                      seurat_data$ind_full_celltype)
+
+cm <- cm / rowSums(cm)
+
+save_heatmap2 <- pheatmap::pheatmap(cm, main = "original vs new celltypes")
+
+```
+
+# Exploring gene expression
+
+I couldn't find great markers to distinguish acinar and ductal cells (and these cells don't have a lot of strong acinar markers). Also, the correlation between the acinar clusters always had strong correlatin with references for both acinar and ductal. I did notice that the expression of KRT7 looked much cleaner after renaming a few acinar popoulations to ductal so this seems correct to me. Below I'm showing the expression of KRT7 with old (top) and new (bottom) labels. The new labels seem more consistent with biology.
+
+```{r}
+
+krt7_before <- featDistPlot(seurat_data, "KRT7", combine = FALSE, 
+                     sep_by = "final_celltype",
+                     color = all_colors3)[[1]] +
+  ggplot2::ggtitle("Previous labels")
+
+krt7_after <- featDistPlot(seurat_data, "KRT7", combine = FALSE, 
+                            sep_by = "final_ind_celltype",
+                            color = all_colors2)[[1]] +
+  ggplot2::ggtitle("New labels")
+
+
+print(cowplot::plot_grid(krt7_before, krt7_after,
+                         nrow = 2, ncol = 1))
+
+```
+
+I also checked the expression of ALDH1A1 with new and old labels and did not see much difference. 
+
+```{r}
+seurat_sub <- subset(seurat_data, 
+                     subset = final_ind_celltype %in%
+                       c("centroacinar_progenitor",
+                         "centroacinar"))
+
+seurat_sub2 <- subset(seurat_data, 
+                      subset = final_celltype %in%
+                        c("centroacinar1",
+                          "centroacinar2"))
+
+
+aldh1a1_before <- featDistPlot(seurat_sub2, "ALDH1A1", col_by = "sample",
+                        sep_by = "final_celltype", combine = FALSE,
+                        color = sample_colors)[[1]] +
+  ggplot2::ggtitle("Previous labels")
+
+aldh1a1_after <- featDistPlot(seurat_sub, "ALDH1A1", col_by = "sample",
+                               sep_by = "final_ind_celltype", combine = FALSE,
+                               color = sample_colors)[[1]] +
+  ggplot2::ggtitle("New labels")
+
+print(cowplot::plot_grid(aldh1a1_before, aldh1a1_after,
+                         nrow = 2, ncol = 1))
+```
+
+# Comparing UMAP before and after
+
+Overall, the UMAPs before and after renaming look pretty similar to me
+
+```{r, fig.width=15, fig.height=8}
+## UMAP ------------------------------------------------------------------
+
+plot1 <- plotDimRed(seurat_data, "final_celltype", plot_type = "rna.umap",
+           color = all_colors3, ggrastr = TRUE)[[1]] +
+  ggplot2::ggtitle("Previous labels")
+
+plot3 <- plotDimRed(seurat_data, "final_ind_celltype", plot_type = "rna.umap",
+           color = all_colors2, ggrastr = TRUE)[[1]] +
+  ggplot2::ggtitle("New labels")
+
+cowplot::plot_grid(plot1, plot3)
+```
+
+# Barplots before and after
+The barplots also don't change significantly, but the small changes make them look much more clean and will make patterns easier to explain.
+
+```{r, fig.width=15, fig.height = 6}
+## Barplots --------------------------------------------------------------
+
+all_barplots1 <- scAnalysisR::stacked_barplots(seurat_data,
+                                              meta_col = "final_celltype",
+                                              split_by = "sample",
+                                              return_values = TRUE,
+                                              color = all_colors3)$barplot +
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5, hjust=1)) +
+  ggplot2::ggtitle("Previous labels")
+
+
+all_barplots3 <- scAnalysisR::stacked_barplots(seurat_data,
+                                               meta_col = "final_ind_celltype",
+                                               split_by = "sample",
+                                               return_values = TRUE,
+                                               color = all_colors2)$barplot +
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5, hjust=1)) +
+  ggplot2::ggtitle("New labels")
+
+
+cowplot::plot_grid(all_barplots1, all_barplots3)
+```
+
