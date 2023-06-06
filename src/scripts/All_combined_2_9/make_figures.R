@@ -254,6 +254,7 @@ print(all_cell_types)
 
 dev.off()
 ## Heatmaps of gene lists ------------------------------------------------------
+# Plot heatmap across all cell types in only day 9
 # Keep working here:
 # 1. Remove celltypes that are only in 1 sample
 # 2. Order based on the order of colors2
@@ -276,6 +277,18 @@ seurat_sub$celltype_sample <- paste(seurat_sub$celltype,
                                     seurat_sub$sample, 
                                     sep = "_")
 
+# Figure out what cell types to plot
+cell_types <- seurat_sub[[]] %>%
+  dplyr::select(sample, celltype) %>%
+  dplyr::distinct() %>%
+  dplyr::group_by(celltype) %>%
+  dplyr::add_count(name = "sample_count") %>%
+  dplyr::filter(sample_count > 1)
+
+# Subset seurat object to just those cell types
+seurat_sub <- subset(seurat_sub, subset = celltype %in%
+                       unique(cell_types$celltype))
+
 # Make meta df
 meta_df <- seurat_sub[[c("sample", "celltype",
                           "celltype_sample")]]
@@ -291,15 +304,33 @@ meta_ave$celltype_sample <- paste(meta_ave$celltype,
                                   meta_ave$sample,
                                   sep = "_")
 
-meta_ave$celltype_sample <- factor(meta_ave$celltype_sample)
+# Get cell type order
+meta_ave$sample <- factor(meta_ave$sample,
+                          levels = names(sample_colors))
+
+meta_ave$celltype <- factor(meta_ave$celltype,
+                            levels = names(all_colors2))
+
+meta_ave <- meta_ave %>%
+  dplyr::arrange(celltype, sample)
+
+meta_ave$celltype_sample <- factor(meta_ave$celltype_sample,
+                                   levels = meta_ave$celltype_sample)
 
 rownames(meta_ave) <- meta_ave$celltype_sample
-color_list <- list("sample" = sample_colors,
-                   "celltype" = all_colors2)
+keep_colors_sample <- sample_colors[names(sample_colors) %in%
+                                      unique(meta_ave$sample)]
+
+keep_colors_celltype <- all_colors2[names(all_colors2) %in%
+                                      unique(meta_ave$celltype)]
+
+color_list <- list("sample" = keep_colors_sample,
+                   "celltype" = keep_colors_celltype)
 
 invisible(lapply(names(gene_lists), function(x){
-  pdf(file.path(sample_dir, "images", "cell_type_heatmaps",
-                paste0(de_test, "_heatmap_average.pdf")))
+  print(x)
+  pdf(file.path(fig_dir,
+                paste0(x, "_heatmap_average.pdf")))
   print(plot_heatmap(seurat_sub, gene_list = gene_lists[[x]],
                      meta_col = "celltype_sample", 
                      average_expression = TRUE,
@@ -311,6 +342,22 @@ invisible(lapply(names(gene_lists), function(x){
                      cluster_rows = TRUE))
   
   dev.off()
+  
+  fig_height <- round(length(gene_lists[[x]]) / 10)
+
+  pdf(file.path(fig_dir,
+                paste0(x, "_heatmap_average_labeled.pdf")),
+      width = 10, height = fig_height)
+  print(plot_heatmap(seurat_sub, gene_list = gene_lists[[x]],
+                     meta_col = "celltype_sample", 
+                     average_expression = TRUE,
+                     colors = sample_colors,
+                     plot_rownames = TRUE,
+                     meta_df = meta_ave, 
+                     color_list = color_list,
+                     plot_meta_col = FALSE,
+                     cluster_rows = TRUE))
+  
+  dev.off()
 }))
 
-# Plot heatmap across all cell types
