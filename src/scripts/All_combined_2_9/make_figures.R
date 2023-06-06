@@ -126,7 +126,6 @@ invisible(lapply(de_tests, function(de_test){
   
 }))
 
-# Progenitor centroacinar DE at day 9
 ### Cell type DE ---------------------------------------------------------------
 seurat_data$sample_celltype <- paste(seurat_data$sample,
                                      seurat_data$celltype,
@@ -227,6 +226,7 @@ invisible(lapply(names(all_violins), function(x){
   pdf(file.path(fig_dir, paste0(x, "_violin.pdf")))
   print(violin)
 }))
+
 ## Pseudotime plots ------------------------------------------------------------
 
 
@@ -254,3 +254,63 @@ print(all_cell_types)
 
 dev.off()
 ## Heatmaps of gene lists ------------------------------------------------------
+# Keep working here:
+# 1. Remove celltypes that are only in 1 sample
+# 2. Order based on the order of colors2
+# Make for all gene lists
+
+gene_path <- here("files/GSEA_signaling_pathways_with_orthologs.xlsx")
+
+all_sheets <- openxlsx::getSheetNames(gene_path)
+
+gene_lists <- lapply(all_sheets, function(x){
+  gene_df <- openxlsx::readWorkbook(gene_path, sheet = x)
+  return(unique(gene_df$gene_id))
+})
+
+names(gene_lists) <- all_sheets
+
+# Subset seurat data
+seurat_sub <- subset(seurat_data, subset = day == "D9")
+seurat_sub$celltype_sample <- paste(seurat_sub$celltype,
+                                    seurat_sub$sample, 
+                                    sep = "_")
+
+# Make meta df
+meta_df <- seurat_sub[[c("sample", "celltype",
+                          "celltype_sample")]]
+meta_ave <- data.frame(table(paste0(seurat_sub$sample, ";",
+                                    seurat_sub$celltype)))
+
+meta_ave$celltype <- gsub(".*_D[0-9]+;", "", 
+                                       meta_ave$Var1)
+meta_ave$sample <- gsub(";.*$", "", meta_ave$Var1)
+meta_ave$Var1 <- NULL
+meta_ave$Freq <- NULL
+meta_ave$celltype_sample <- paste(meta_ave$celltype,
+                                  meta_ave$sample,
+                                  sep = "_")
+
+meta_ave$celltype_sample <- factor(meta_ave$celltype_sample)
+
+rownames(meta_ave) <- meta_ave$celltype_sample
+color_list <- list("sample" = sample_colors,
+                   "celltype" = all_colors2)
+
+invisible(lapply(names(gene_lists), function(x){
+  pdf(file.path(sample_dir, "images", "cell_type_heatmaps",
+                paste0(de_test, "_heatmap_average.pdf")))
+  print(plot_heatmap(seurat_sub, gene_list = gene_lists[[x]],
+                     meta_col = "celltype_sample", 
+                     average_expression = TRUE,
+                     colors = sample_colors,
+                     plot_rownames = FALSE,
+                     meta_df = meta_ave, 
+                     color_list = color_list,
+                     plot_meta_col = FALSE,
+                     cluster_rows = TRUE))
+  
+  dev.off()
+}))
+
+# Plot heatmap across all cell types
