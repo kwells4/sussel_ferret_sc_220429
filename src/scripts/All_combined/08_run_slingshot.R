@@ -59,7 +59,7 @@ slingshot_cells <- cellnames(slingshot_res)
 seurat_object <- subset(seurat_object, cells = slingshot_cells)
 
 # Find variable genes, we will only use these
-seurat_object <- FindVariableFeatures(seurat_object, nfeatures = 100)
+seurat_object <- FindVariableFeatures(seurat_object, nfeatures = 3000)
 
 counts <- GetAssayData(seurat_object, slot = "data")
 
