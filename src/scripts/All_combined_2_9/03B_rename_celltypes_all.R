@@ -1,3 +1,21 @@
+# Document information
+# This document processes WT and CFKO separately to identify joint celltypes
+# for all samples within one genotype. Because they don't cluster together
+# I kept the genotypes separate so that genes driven by batch effect wouldn't
+# contribute to the cell type identification. The two are then combined
+# and some metrics are explored to ensure that the cell types are similar
+# between this method and naming celltypes in each sample individually.
+# It makes three important metadata columns
+# new_celltype = This cell type is identified by taking the clustering from
+#   each genotype and finding the cell type from the individual sample analysis
+#   that the majority of cells in the cluster belong to. This is mostly used
+#   to check for similarity between the analysis.
+# final_ind_celltype = This is the cell type that is determined from running
+#   clustifyr on all cells for one genotype together. The transitional to 
+#   acinar and progenitor cells are then combined.
+# ind_full_celltype = This is the same as the final_ind_celltype but the 
+#   transitional to acinar and progenitor cells are left separate.
+
 library(Seurat)
 library(tidyverse)
 library(cowplot)

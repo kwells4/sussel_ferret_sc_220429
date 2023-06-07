@@ -1,3 +1,8 @@
+# Document information
+# This document finds all differentially expresed genes between the samples
+# and cell types within the samples. These DE genes are used in the
+# "make_figures.R" script to make heatmaps.
+
 library(Seurat)
 library(tidyverse)
 library(cowplot)

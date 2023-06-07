@@ -1,3 +1,7 @@
+# Document information
+# This document merges all of the independent samples and runs normalization,
+# variable feature discovery, and scale data
+
 library(Seurat)
 library(tidyverse)
 library(cowplot)

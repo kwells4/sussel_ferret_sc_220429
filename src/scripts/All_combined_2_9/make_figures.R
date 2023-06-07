@@ -1,3 +1,6 @@
+# Document information
+# This document makes all of the figures that are seen in the manuscript.
+
 library(Seurat)
 library(tidyverse)
 library(cowplot)

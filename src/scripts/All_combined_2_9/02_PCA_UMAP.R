@@ -1,3 +1,13 @@
+# Document information
+# This document takes the merged object, runs PCA and UMAP
+# with and without batch correction.
+# It makes two important metadata columns
+# orig_combined_celltype = the cell types called on each sample
+#   independently
+# RNA_combined_celltype = same as orig_combined_celltype but
+#   with the transitional to acinar cells combined into one
+#   group
+
 library(Seurat)
 library(tidyverse)
 library(cowplot)

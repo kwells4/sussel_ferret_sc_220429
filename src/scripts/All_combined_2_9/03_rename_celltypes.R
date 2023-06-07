@@ -1,3 +1,11 @@
+# Document information
+# This document combines the transitional to acinar and progenitor like
+# cells into one combined celltype.
+# It makes one important metadata column
+# final_celltype = The cell type based on individual analysis with the
+#    the transitional to acinar and progentior like cells combined. This
+#    will look similar to the RNA_combined_celltype and orig-combined_celltype
+
 library(scAnalysisR)
 library(tidyverse)
 library(here)
