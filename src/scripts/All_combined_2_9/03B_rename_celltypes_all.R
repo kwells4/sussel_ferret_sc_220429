@@ -635,6 +635,10 @@ cowplot::plot_grid(all_barplots1, all_barplots2, all_barplots3)
 
 
 saveRDS(seurat_data, file.path(save_dir, "rda_obj/seurat_processed.rds"))
+saveRDS(seurat_wt, file.path(save_dir, "rda_obj/seurat_wt.rds"))
+saveRDS(seurat_cfko, file.path(save_dir, "rda_obj/seurat_cfko.rds"))
+
+## Plots -----------------------------------------------------------------------
 
 krt7_before <- featDistPlot(seurat_data, "KRT7", combine = FALSE, 
                      sep_by = "final_celltype",
