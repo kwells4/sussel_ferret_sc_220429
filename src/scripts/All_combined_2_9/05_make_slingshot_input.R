@@ -85,9 +85,8 @@ seurat_wt <- readRDS(file.path(sample_dir, "rda_obj/seurat_wt.rds"))
 seurat_cfko <- readRDS(file.path(sample_dir, "rda_obj/seurat_cfko.rds"))
 
 # Get clusters for slingshot, lower resolution than the cell types
-#seurat_cfko$RNA_snn_res.1.5 <- NULL
-seurat_cfko <- FindClusters(seurat_cfko, resolution = 1.5)
-seurat_cfko$cfko_slingshot_cluster <- seurat_cfko$RNA_snn_res.1.5
+seurat_cfko <- FindClusters(seurat_cfko, resolution = 0.7)
+seurat_cfko$cfko_slingshot_cluster <- seurat_cfko$RNA_snn_res.0.7
 
 all_plots <- lapply(unique(seurat_cfko$cfko_slingshot_cluster), function(x){
   plotDimRed(seurat_cfko, col_by = "cfko_slingshot_cluster",
@@ -108,7 +107,7 @@ test_lineages <- getLineages(seurat_cfko_sce,
                              dist.method = "mnn")
 cfko_results <- SlingshotDataSet(test_lineages)
 
-#seurat_wt$RNA_snn_res.1.5 <- NULL
+# Was 1.5
 seurat_wt <- FindClusters(seurat_wt, resolution = 1.5)
 seurat_wt$wt_slingshot_cluster <- seurat_wt$RNA_snn_res.1.5
 

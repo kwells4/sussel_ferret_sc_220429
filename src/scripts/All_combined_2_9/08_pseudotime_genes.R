@@ -328,24 +328,24 @@ image_dir <- file.path(all_sample_dir, "images", "slingshot")
 ifelse(!dir.exists(image_dir), dir.create(image_dir, recursive = TRUE), FALSE)
 
 # Lineage 2 heatmaps
-lineage_3_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
-                                        lineage_name = "cfko_Lineage3",
-                                        lineage_number = "3",
+lineage_2_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
+                                        lineage_name = "cfko_Lineage2",
+                                        lineage_number = "2",
                                         lineage_asso_res = lineage_assoRes_ckfo,
                                         image_dir = image_dir,
                                         sample_colors = sample_colors,
                                         waldcutoff = 200, pval_cutoff = 0.05)
 
 png(file.path(image_dir,
-              "cfko_lineage3_heatmap_wald200_names.png"),
+              "cfko_lineage2_heatmap_wald200_names.png"),
     width = 900, height = 1300)
 
-print(lineage_3_info$heatmap)
+print(lineage_2_info$heatmap)
 
 dev.off()
 
 # Get genes in each cluster
-gene_info_cfko_lineage_3 <- sort(cutree(lineage_3_info$heatmap$tree_row, k=4))
+gene_info_cfko_lineage_2 <- sort(cutree(lineage_2_info$heatmap$tree_row, k=4))
 
 ## WT --------------------------------------------------------------------------
 
@@ -372,15 +372,14 @@ write.csv(lineage_assoRes_wt, file.path(all_sample_dir, "files",
                                      "slingshot",
                                      "wt_association_test.csv"))
 
-# I like 3, 4, 5, 7 (1, 2?)
 
 image_dir <- file.path(all_sample_dir, "images", "slingshot")
 
-# Lineage 1 heatmaps
+# Lineage 7 heatmaps
 set.seed(100)
-lineage_6_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
-                                        lineage_name = "wt_Lineage6",
-                                        lineage_number = "6",
+lineage_7_info <- make_lineage_heatmaps(seurat_object = merged_seurat,
+                                        lineage_name = "wt_Lineage7",
+                                        lineage_number = "7",
                                         lineage_asso_res = lineage_assoRes_wt,
                                         image_dir = image_dir,
                                         sample_colors = sample_colors,
@@ -391,11 +390,11 @@ png(file.path(all_sample_dir, "images", "slingshot",
               "wt_lineage1_heatmap_wald200_names.png"),
     width = 900, height = 2000)
 
-print(lineage_6_info$heatmap)
+print(lineage_7_info$heatmap)
 
 dev.off()
 
-gene_info_wt_lineage_6 <- sort(cutree(lineage_6_info$heatmap$tree_row, k=10))
+gene_info_wt_lineage_7 <- sort(cutree(lineage_7_info$heatmap$tree_row, k=10))
 
 # Comparing WT and CF ----------------------------------------------------------
 
@@ -434,23 +433,23 @@ ifelse(!dir.exists(file.path(image_dir, "expression_over_time")),
 # Lineage colors
 lineage_colors_base <- met.brewer("Egypt", 2)
 
-# CFKO lineage 3 and WT lineage 6
+# CFKO lineage 3 and WT lineage 7
 combined_lineage <- 
   plot_overlapping_lineages(seurat_object = merged_seurat,
-                            cfko_lineage_genes = gene_info_cfko_lineage_3,
-                            wt_lineage_genes = gene_info_wt_lineage_6,
+                            cfko_lineage_genes = gene_info_cfko_lineage_2,
+                            wt_lineage_genes = gene_info_wt_lineage_7,
                             cfko_lineage_name = "cfko_Lineage3",
-                            wt_lineage_name = "wt_Lineage6",
+                            wt_lineage_name = "wt_Lineage7",
                             save_dir = file.path(all_sample_dir, "images", 
                                                  "slingshot",
                                                  "expression_over_time"))
 
 combined_lineage <- 
   plot_overlapping_lineages(seurat_object = merged_seurat,
-                            cfko_lineage_genes = gene_info_cfko_lineage_3,
-                            wt_lineage_genes = gene_info_wt_lineage_6,
-                            cfko_lineage_name = "cfko_Lineage3",
-                            wt_lineage_name = "wt_Lineage6",
+                            cfko_lineage_genes = gene_info_cfko_lineage_2,
+                            wt_lineage_genes = gene_info_wt_lineage_7,
+                            cfko_lineage_name = "cfko_Lineage2",
+                            wt_lineage_name = "wt_Lineage7",
                             save_dir = file.path(all_sample_dir, "images", 
                                                  "slingshot",
                                                  "expression_over_time"),
@@ -465,11 +464,11 @@ plot_genes <- gene_list[gene_list %in% combined_lineage$gene]
 
 
 lineage_colors <- lineage_colors_base
-names(lineage_colors) <- c("wt_Lineage6", "cfko_Lineage3")
+names(lineage_colors) <- c("wt_Lineage7", "cfko_Lineage2")
 
 different_plots <- plotPseudotime(merged_seurat,
-                                  lineages = c("cfko_Lineage3",
-                                               "wt_Lineage6"),
+                                  lineages = c("cfko_Lineage2",
+                                               "wt_Lineage7"),
                                   gene_list = gene_list,
                                   col_by = "lineage", color = lineage_colors,
                                   line_color = "lineage",

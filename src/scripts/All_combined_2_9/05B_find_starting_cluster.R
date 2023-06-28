@@ -50,7 +50,7 @@ plotDimRed(merged_seurat, "wt_slingshot_cluster", plot_type = "rna.umap")
 
 plotDimRed(merged_seurat, "wt_slingshot_cluster", plot_type = "rna.umap",
            highlight_group = TRUE, meta_data_col = "wt_slingshot_cluster",
-           group = 3)
+           group = 4)
 
 plotDimRed(merged_seurat, "cfko_slingshot_cluster", plot_type = "rna.umap")
 
