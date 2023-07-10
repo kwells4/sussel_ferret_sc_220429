@@ -32,3 +32,4 @@ results_introns/*/outs/*
 notes
 src/*/*/*.html
 manuscript
+files/gene_product_mapping.tsv

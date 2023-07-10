@@ -182,6 +182,73 @@ print(plot_heatmap(celltype_seurat, gene_list = unique(test_de$gene),
 
 dev.off()
 
+fig_height <- round(length(test_de$gene) / 10)
+
+pdf(file.path(fig_dir,
+              paste0(de_test, "_", keep_celltype,
+                     "_heatmap_average_names.pdf")),
+    width = 8, height = fig_height)
+print(plot_heatmap(celltype_seurat, gene_list = unique(test_de$gene),
+                   meta_col = "sample", average_expression = TRUE,
+                   colors = sample_colors, plot_rownames = TRUE))
+
+dev.off()
+
+new_gene_list <- test_de %>%
+  dplyr::select(gene, Human.gene.name) %>%
+  dplyr::distinct() %>%
+  dplyr::group_by(gene) %>%
+  dplyr::add_count(name = "ferret_count")
+
+one_genes <- new_gene_list %>%
+  dplyr::filter(ferret_count == 1)
+
+multi_genes <- new_gene_list %>%
+  dplyr::filter(ferret_count > 1) %>%
+  dplyr::filter(Human.gene.name != "") %>%
+  dplyr::group_by(gene) %>%
+  dplyr::add_count(name = "ferret_count")
+
+one_genes_pt_two <- multi_genes %>%
+  dplyr::filter(ferret_count == 1)
+
+multi_genes <- multi_genes %>%
+  dplyr::filter(ferret_count > 1)
+
+# I'm renaming these by hand
+updated_genes <- c("LOC101682302" = "CEACAM1",
+                   "LOC101683606" = "DDT",
+                   "LOC101676319" = "IFITM3",
+                   "LOC101690213" = "APOL3",
+                   "LOC123394022" = "EIF2S3",
+                   "UPK3BL2" = "UPK3BL2",
+                   "LOC106005009" = "MT1A",
+                   "LOC101680117" = "MT1E",
+                   "EIF5A" = "EIF5A")
+
+all_genes <- c(paste(one_genes$gene, one_genes$Human.gene.name, sep = "_"),
+               paste(one_genes_pt_two$gene, one_genes_pt_two$Human.gene.name,
+                     sep = "_"),
+               paste(names(updated_genes), updated_genes, sep = "_"))
+names(all_genes) <- c(one_genes$gene, one_genes_pt_two$gene, 
+                      names(updated_genes))
+
+# The res I can just pull out
+# Then make a named list and pass to labels_row. Double check that this is 
+# correct by comparing the two heat maps
+
+
+pdf(file.path(fig_dir,
+              paste0(de_test, "_", keep_celltype,
+                     "_heatmap_average_human_names.pdf")),
+    width = 8, height = fig_height)
+print(plot_heatmap(celltype_seurat, gene_list = unique(test_de$gene),
+                   meta_col = "sample", average_expression = TRUE,
+                   colors = sample_colors, plot_rownames = TRUE,
+                   labels_row = all_genes))
+
+dev.off()
+
 
 # Centroacinar DE at day 9
 keep_celltype <- "centroacinar"
@@ -209,6 +276,74 @@ print(plot_heatmap(celltype_seurat, gene_list = unique(test_de$gene),
                    colors = sample_colors, plot_rownames = FALSE))
 
 dev.off()
+
+fig_height <- round(length(test_de$gene) / 10)
+
+pdf(file.path(fig_dir,
+              paste0(de_test, "_", keep_celltype,
+                     "_heatmap_average_names.pdf")),
+    width = 8, height = fig_height)
+print(plot_heatmap(celltype_seurat, gene_list = unique(test_de$gene),
+                   meta_col = "sample", average_expression = TRUE,
+                   colors = sample_colors, plot_rownames = TRUE))
+
+dev.off()
+
+new_gene_list <- test_de %>%
+  dplyr::select(gene, Human.gene.name) %>%
+  dplyr::distinct() %>%
+  dplyr::group_by(gene) %>%
+  dplyr::add_count(name = "ferret_count")
+
+one_genes <- new_gene_list %>%
+  dplyr::filter(ferret_count == 1)
+
+multi_genes <- new_gene_list %>%
+  dplyr::filter(ferret_count > 1) %>%
+  dplyr::filter(Human.gene.name != "") %>%
+  dplyr::group_by(gene) %>%
+  dplyr::add_count(name = "ferret_count")
+
+one_genes_pt_two <- multi_genes %>%
+  dplyr::filter(ferret_count == 1)
+
+multi_genes <- multi_genes %>%
+  dplyr::filter(ferret_count > 1)
+
+# I'm renaming these by hand
+updated_genes <- c("LOC101682302" = "CEACAM1",
+                   "LOC101690213" = "APOL3",
+                   "LOC101676319" = "IFITM3",
+                   "LOC123394022" = "EIF2S3",
+                   "UPK3BL2" = "UPK3BL2",
+                   "LOC101687332" = "SCHIP1",
+                   "SUMO2" = "SUMO2",
+                   "LOC106005009" = "MT1A",
+                   "LOC101680117" = "MT1E")
+
+all_genes <- c(paste(one_genes$gene, one_genes$Human.gene.name, sep = "_"),
+               paste(one_genes_pt_two$gene, one_genes_pt_two$Human.gene.name,
+                     sep = "_"),
+               paste(names(updated_genes), updated_genes, sep = "_"))
+names(all_genes) <- c(one_genes$gene, one_genes_pt_two$gene, 
+                      names(updated_genes))
+
+# The res I can just pull out
+# Then make a named list and pass to labels_row. Double check that this is 
+# correct by comparing the two heat maps
+
+
+pdf(file.path(fig_dir,
+              paste0(de_test, "_", keep_celltype,
+                     "_heatmap_average_human_names.pdf")),
+    width = 8, height = fig_height)
+print(plot_heatmap(celltype_seurat, gene_list = unique(test_de$gene),
+                   meta_col = "sample", average_expression = TRUE,
+                   colors = sample_colors, plot_rownames = TRUE,
+                   labels_row = all_genes))
+
+dev.off()
+
 
 ## Violin plots ----------------------------------------------------------------
 violin_genes <- c("ATOX1", "GATA3", "LAMB1", "PAX6",
