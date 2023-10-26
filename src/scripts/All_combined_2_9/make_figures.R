@@ -88,6 +88,16 @@ print(all_barplots)
 
 dev.off()
 
+barplot_data <- scAnalysisR::stacked_barplots(seurat_data,
+                                              meta_col = "celltype",
+                                              split_by = "sample",
+                                              return_values = TRUE,
+                                              color = all_colors2)$data %>%
+  dplyr::rename(celltype = meta_col,
+                sample = split_by)
+
+write.csv(barplot_data, file = file.path(save_dir, "files", "celltype_frequency.csv"))
+
 ## DE genes --------------------------------------------------------------------
 # DE genes for each day, plot all days, group by genotype
 de_tests <- c("D2_all", "D5_all", "D7_all", "D9_all")
@@ -349,12 +359,37 @@ dev.off()
 violin_genes <- c("ATOX1", "GATA3", "LAMB1", "PAX6",
                   "PDIA3", "TMSB10", "DKK1", "HES1",
                   "IGFBP7", "GAS6", "SLC25A13",
-                  "ITGB1", "SPP1", "LASP1")
+                  "ITGB1", "SPP1", "LASP1", "PDX1")
 
 all_violins <- featDistPlot(seurat_data, violin_genes,
                             sep_by = "sample", 
                             color = sample_colors,
                             combine = FALSE)
+
+barcode_order <- rownames(all_violins[[1]]$data)
+genotype <- all_violins[[1]]$data$col_by
+violin_data <- lapply(names(all_violins), function(x){
+  return_data <- all_violins[[x]]$data
+  if(!identical(rownames(return_data), barcode_order)){
+    return_data <- return_data[order(match(rownames(return_data),
+                                           barcode_order)), ]
+  }
+  return_data <- return_data %>%
+    dplyr::select(y_value)
+  
+  colnames(return_data) <- x
+  
+  return(return_data)
+})
+
+violin_data <- do.call(cbind, violin_data)
+
+violin_data <- violin_data %>%
+  dplyr::mutate(sample = genotype) %>%
+  dplyr::select(sample, everything())
+
+write.csv(violin_data, file.path(save_dir, "files",
+                                 "violin_plot_values.csv"))
 
 invisible(lapply(names(all_violins), function(x){
   violin_plot <- all_violins[[x]] +
@@ -362,7 +397,8 @@ invisible(lapply(names(all_violins), function(x){
     ggplot2::ggtitle(x)
   
   pdf(file.path(fig_dir, paste0(x, "_violin.pdf")))
-  print(violin)
+  print(violin_plot)
+  dev.off()
 }))
 
 ## Pseudotime plots ------------------------------------------------------------

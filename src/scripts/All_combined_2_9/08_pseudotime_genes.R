@@ -480,3 +480,42 @@ pdf(file.path(all_sample_dir, "images", "slingshot",
 print(different_plots)
 
 dev.off()
+
+
+# Save excel files
+names(different_plots) <- gene_list
+pseudotime_order <- different_plots[[1]]$data$pseudotime
+genotype_order <- different_plots[[1]]$data$lineage
+genotype_pseudotime_order <- paste(pseudotime_order, genotype_order,
+                                   sep = "_")
+all_data <- lapply(names(different_plots), function(x){
+  write_data <- different_plots[[x]]$data %>%
+    dplyr::mutate(genotype_lineage = paste(pseudotime, lineage,
+                                           sep = "_"))
+  
+  if(!identical(write_data$genotype_lineage, genotype_pseudotime_order)){
+    write_data <- write_data[order(match(write_data$genotype_lineage,
+                                         genotype_pseudotime_order)),]
+  }
+  
+  write_data <- write_data %>%
+    dplyr::select(gene)
+
+  colnames(write_data) <- c(x)
+  return(write_data)
+})
+
+# Merge all data frames together
+all_data <- do.call(cbind, all_data)
+
+all_data$pseudotime <- pseudotime_order
+all_data$genotype <- genotype_order
+
+all_data <- all_data %>%
+  dplyr::select(genotype, pseudotime, everything()) %>%
+  dplyr::mutate(genotype = gsub("_.*", "", genotype))
+
+
+write.csv(all_data, file.path(all_sample_dir, "files",
+                              "slingshot",
+                              "slingshot_gene_expression_values.csv"))
