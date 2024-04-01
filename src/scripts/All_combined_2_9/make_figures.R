@@ -39,8 +39,10 @@ sample_colors <- sample_colors[c("WT_D2", "WT_D5", "WT_D7", "WT_D9", "WT_D14",
 sample_colors <- sample_colors[!(grepl("D14", names(sample_colors)))]
 
 fig_dir <- file.path(save_dir, "images", "final_figures")
+file_dir <- file.path(save_dir, "images", "figure_files")
 
 ifelse(!dir.exists(fig_dir), dir.create(fig_dir), FALSE)
+ifelse(!dir.exists(file_dir), dir.create(file_dir), FALSE)
 
 seurat_data$celltype <- seurat_data$final_ind_celltype
 
@@ -166,6 +168,7 @@ de_genes <- do.call(rbind, de_genes)
 
 
 #### Progenitor centroacinar DE at day 9 ---------------------------------------
+save_wb <- openxlsx::createWorkbook()
 keep_celltype <- "centroacinar_progenitor"
 
 test_de <- de_genes %>%
@@ -186,11 +189,19 @@ celltype_seurat$sample <- droplevels(celltype_seurat$sample)
 pdf(file.path(fig_dir,
               paste0(de_test, "_", keep_celltype,
                      "_heatmap_average.pdf")))
-print(plot_heatmap(celltype_seurat, gene_list = unique(test_de$gene),
+heatmap <- plot_heatmap(celltype_seurat, gene_list = unique(test_de$gene),
                    meta_col = "sample", average_expression = TRUE,
-                   colors = sample_colors, plot_rownames = FALSE))
+                   colors = sample_colors, plot_rownames = FALSE,
+                   return_data = TRUE)
+
+print(heatmap$heatmap)
 
 dev.off()
+
+openxlsx::addWorksheet(wb = save_wb, sheetName = keep_celltype)
+openxlsx::writeData(wb = save_wb, sheet = keep_celltype,
+                    x = heatmap$z_score,
+                    rowNames = TRUE)
 
 fig_height <- round(length(test_de$gene) / 10)
 
@@ -293,11 +304,17 @@ pdf(file.path(fig_dir,
               paste0(de_test, "_", keep_celltype,
                      "_heatmap_average_names.pdf")),
     width = 8, height = fig_height)
-print(plot_heatmap(celltype_seurat, gene_list = unique(test_de$gene),
+heatmap <- plot_heatmap(celltype_seurat, gene_list = unique(test_de$gene),
                    meta_col = "sample", average_expression = TRUE,
-                   colors = sample_colors, plot_rownames = TRUE))
+                   colors = sample_colors, plot_rownames = TRUE,
+                   return_data = TRUE)
+print(heatmap$heatmap)
 
 dev.off()
+
+openxlsx::addWorksheet(wb = save_wb, sheetName = keep_celltype)
+openxlsx::writeData(wb = save_wb, sheet = keep_celltype,
+                    x = heatmap$z_score, rowNames = TRUE)
 
 new_gene_list <- test_de %>%
   dplyr::select(gene, Human.gene.name) %>%
@@ -353,6 +370,9 @@ print(plot_heatmap(celltype_seurat, gene_list = unique(test_de$gene),
                    labels_row = all_genes))
 
 dev.off()
+
+openxlsx::saveWorkbook(save_wb, file.path(file_dir, "D9_DE_heatmaps.xlsx"),
+                       overwrite = TRUE)
 
 
 ## Violin plots ----------------------------------------------------------------
@@ -434,6 +454,8 @@ dev.off()
 # 2. Order based on the order of colors2
 # Make for all gene lists
 
+save_wb <- openxlsx::createWorkbook()
+
 gene_path <- here("files/GSEA_signaling_pathways_with_orthologs.xlsx")
 
 all_sheets <- openxlsx::getSheetNames(gene_path)
@@ -505,7 +527,7 @@ invisible(lapply(names(gene_lists), function(x){
   print(x)
   pdf(file.path(fig_dir,
                 paste0(x, "_heatmap_average.pdf")))
-  print(plot_heatmap(seurat_sub, gene_list = gene_lists[[x]],
+  heatmap <- plot_heatmap(seurat_sub, gene_list = gene_lists[[x]],
                      meta_col = "celltype_sample", 
                      average_expression = TRUE,
                      colors = sample_colors,
@@ -513,9 +535,18 @@ invisible(lapply(names(gene_lists), function(x){
                      meta_df = meta_ave, 
                      color_list = color_list,
                      plot_meta_col = FALSE,
-                     cluster_rows = TRUE))
+                     cluster_rows = TRUE,
+                     return_data = TRUE)
+  
+  print(heatmap$heatmap)
   
   dev.off()
+  
+  openxlsx::addWorksheet(wb = save_wb,
+                         sheetName = x)
+  
+  openxlsx::writeData(wb = save_wb, sheet = x,
+                      x = heatmap$z_score, rowNames = TRUE)
   
   fig_height <- round(length(gene_lists[[x]]) / 10)
 
@@ -535,3 +566,6 @@ invisible(lapply(names(gene_lists), function(x){
   dev.off()
 }))
 
+
+openxlsx::saveWorkbook(save_wb, file.path(file_dir, "gene_list_heatmaps.xlsx"),
+                       overwrite = TRUE)
