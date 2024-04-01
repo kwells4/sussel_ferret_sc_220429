@@ -6,9 +6,11 @@
 #BSUB -R "select[mem>200] rusage[mem=200]" 
 #BSUB -q rna
 
-script=src/scripts/All_combined/08_run_slingshot.R
+# Run in slingshot conda environment
 
-data_path=results/All_combined/R_analysis/files/slingshot
+script=src/scripts/All_combined_2_9/06_run_slingshot.R
+
+data_path=results/All_combined_2_9/R_analysis/files/slingshot
 
 pca_file=$data_path/CFKO_pca.tsv 
 
@@ -22,7 +24,7 @@ save_name=$data_path/CFKO
 
 save_name_all=$data_path/CFKO_all
 
-seurat_object=results/All_combined/R_analysis/rda_obj/seurat_processed.rds
+seurat_object=results/All_combined_2_9/R_analysis/rda_obj/seurat_processed.rds
 
 nknots="5"
 
