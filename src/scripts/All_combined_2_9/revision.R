@@ -156,24 +156,66 @@ plotDimRed(seurat_data, col_by = "full_corrected_cluster", plot_type = "harmony.
 # Make input for slingshot
 # PCA 1:30
 
+
 make_slingshot_info <- function(seurat_data, sample_group, save_dir){
   # Subset to just the genotype of interest
   subset_seruat <- subset(seurat_data, subset = genotype == sample_group)
+
+  # Want only cells that are in the genotype to be part of the clustering
+  # UMAP of gene expression
+  set.seed(0)
+  umap_data <- group_cells(subset_seruat, sample, save_dir = NULL,
+                           nPCs = RNA_pcs,
+                           resolution = 3.0, assay = "RNA", HTO = FALSE,
+                           reduction = "harmony")
+  
+  subset_seruat <- umap_data$object
   
   dim_red <- Embeddings(subset_seruat, reduction = "harmony")[ , 1:30]
   
-  clusters <- subset_seruat$full_corrected_cluster
+  clusters <- subset_seruat$RNA_cluster
   
+
   write.table(clusters, sep = "\t", quote = FALSE, row.names = TRUE,
               file = file.path(save_dir, paste0(sample_group, "_clusters.tsv")))
   
   write.table(dim_red, sep = "\t", quote = FALSE, row.names = TRUE,
               file = file.path(save_dir, paste0(sample_group, "_pca.tsv")))
   
+  return(subset_seruat)
+  
 }
 
-make_slingshot_info(seurat_data, "WT", 
+wt <- make_slingshot_info(seurat_data, "WT", 
                     save_dir = file.path(save_dir, "images", "revision"))
 
-make_slingshot_info(seurat_data, "CFKO", 
+cfko <- make_slingshot_info(seurat_data, "CFKO", 
                     save_dir = file.path(save_dir, "images", "revision"))
+
+
+# Find starting cluster
+plotDimRed(wt, "wt_Lineage1", plot_type = "harmony.umap")
+plotDimRed(wt, "RNA_cluster", plot_type = "harmony.umap")
+plotDimRed(wt, "RNA_cluster", plot_type = "harmony.umap",
+           highlight_group = TRUE, group = "26", meta_data_col = "RNA_cluster")
+
+plotDimRed(wt, "RNA_cluster", plot_type = "harmony.umap",
+           highlight_group = TRUE, group = "13", meta_data_col = "RNA_cluster")
+
+featDistPlot(wt, geneset = "CRABP2", combine = FALSE, sep_by = "RNA_cluster",
+             col_by = "RNA_cluster")
+featDistPlot(wt, geneset = c("wt_Lineage1", "wt_Lineage2"),
+             combine = FALSE, sep_by = "RNA_cluster",
+             col_by = "RNA_cluster")
+
+
+plotDimRed(cfko, "cfko_Lineage3", plot_type = "harmony.umap")
+featDistPlot(cfko, geneset = c("cfko_Lineage1", "cfko_Lineage2"),
+             combine = FALSE, sep_by = "RNA_cluster",
+             col_by = "RNA_cluster")
+plotDimRed(cfko, "RNA_cluster", plot_type = "harmony.umap")
+plotDimRed(cfko, "RNA_cluster", plot_type = "harmony.umap",
+           highlight_group = TRUE, group = "18", meta_data_col = "RNA_cluster")
+
+featDistPlot(cfko, geneset = "CRABP2", combine = FALSE, sep_by = "RNA_cluster",
+             col_by = "RNA_cluster")

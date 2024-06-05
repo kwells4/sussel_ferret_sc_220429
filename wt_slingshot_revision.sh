@@ -16,7 +16,7 @@ pca_file=$data_path/WT_pca.tsv
 
 cluster_file=$data_path/WT_clusters.tsv
 
-start_cluster="7"
+start_cluster="26"
 
 save_name=$data_path/WT
 

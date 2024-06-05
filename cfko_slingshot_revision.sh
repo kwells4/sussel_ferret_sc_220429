@@ -16,7 +16,7 @@ pca_file=$data_path/CFKO_pca.tsv
 
 cluster_file=$data_path/CFKO_clusters.tsv
 
-start_cluster="1"
+start_cluster="18"
 
 save_name=$data_path/CFKO
 
