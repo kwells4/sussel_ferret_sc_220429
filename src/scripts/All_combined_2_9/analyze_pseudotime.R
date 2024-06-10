@@ -44,10 +44,12 @@ plotPseudotimeSingle <- function(seurat_object, lineages, gene,
   # If col_by is lineage or pseudotime, do this,
   # otherwise add col_by to the call
   if (col_by %in% c("pseudotime", "lineage")){
-    data_info <- Seurat::FetchData(seurat_object, vars = c(lineages, gene))
+    data_info <- Seurat::FetchData(seurat_object, vars = c(lineages, gene),
+                                   slot = "data")
   } else {
     data_info <- Seurat::FetchData(seurat_object,
-                                   vars = c(lineages, gene, col_by))
+                                   vars = c(lineages, gene, col_by),
+                                   slot = "data")
   }
   
   # Here I'll need to pivot_longer by the lineages
@@ -309,6 +311,74 @@ colnames(wt_pseudotime) <- paste0("wt_", colnames(wt_pseudotime))
 wt_pseudotime <- data.frame(wt_pseudotime)
 
 
+# Plot on UMAP
+all_umap <- Embeddings(merged_seurat, reduction = "rna.umap")
+cfko_umap <- all_umap[rownames(all_umap) %in% rownames(cfko_pseudotime),]
+
+cfko_umap_slingshot <- embedCurves(cfko_slingshot, newDimRed = cfko_umap)
+
+
+all_curves <- slingCurves(cfko_umap_slingshot)
+
+all_plots <- lapply(1:length(all_curves), function(x){
+  c <- all_curves[[x]]
+  curve1_coord <- data.frame(c$s[c$ord, c(1,2)])
+  curve1_coord$stage <- "line"
+  
+  
+  # This line cuts off the long tail... Probably a better option is
+  # to just remove unknown before running slingshot.
+  base_plot <- plotDimRed(merged_seurat, col_by = "sample", color = sample_colors,
+                          plot_type = "rna.umap",
+                          ggrastr = TRUE)[[1]]
+  base_plot <- base_plot + ggplot2::geom_path(data = curve1_coord,
+                                              ggplot2::aes(rnaUMAP_1, rnaUMAP_2),
+                                              color = "black", size = 1)  +
+    ggplot2::ggtitle(paste0("cfko_lineage", x))
+  
+  return(base_plot)
+})
+
+all_umap <- Embeddings(merged_seurat, reduction = "rna.umap")
+wt_umap <- all_umap[rownames(all_umap) %in% rownames(wt_pseudotime),]
+
+wt_umap_slingshot <- embedCurves(wt_slingshot, newDimRed = wt_umap)
+
+
+all_curves <- slingCurves(wt_umap_slingshot)
+
+all_plots <- lapply(1:length(all_curves), function(x){
+  c <- all_curves[[x]]
+  curve1_coord <- data.frame(c$s[c$ord, c(1,2)])
+  curve1_coord$stage <- "line"
+  
+  
+  # This line cuts off the long tail... Probably a better option is
+  # to just remove unknown before running slingshot.
+  base_plot <- plotDimRed(merged_seurat, col_by = "sample", color = sample_colors,
+                          plot_type = "rna.umap",
+                          ggrastr = TRUE)[[1]]
+  base_plot <- base_plot + ggplot2::geom_path(data = curve1_coord,
+                                              ggplot2::aes(rnaUMAP_1, rnaUMAP_2),
+                                              color = "black", size = 1)  +
+    ggplot2::ggtitle(paste0("wt_lineage", x))
+  
+  return(base_plot)
+})
+
+# Lineage 2 for CF lineage 7 for WT
+colnames(cfko_pseudotime) <- paste0("corrected_", colnames(cfko_pseudotime))
+colnames(wt_pseudotime) <- paste0("corrected_", colnames(wt_pseudotime))
+
+merged_seurat <- AddMetaData(merged_seurat, cfko_pseudotime)
+merged_seurat <- AddMetaData(merged_seurat, wt_pseudotime)
+
+all_plots <- plotDimRed(merged_seurat, col_by = colnames(cfko_pseudotime),
+                        plot_type = "rna.umap")
+
+all_plots <- plotDimRed(merged_seurat, col_by = colnames(wt_pseudotime),
+                        plot_type = "rna.umap")
+
 check_correlation <- function(seurat_object, slingshot_df,
                               test_lineage){
   
@@ -379,32 +449,9 @@ lineage_mapping <- c("wt_Lineage1" = "wt_Lineage1",
 
 
 # Trying genes from the paper with the new values
+lineage_colors <- MetBrewer::met.brewer("Egypt", 2)
+
 # Lineage 2 for CF lineage 7 for WT
-cfko_keep <- cfko_pseudotime[, "cfko_Lineage3", drop = FALSE]
-wt_keep <- wt_pseudotime[, "wt_Lineage10", drop = FALSE]
-colnames(cfko_keep) <- "corrected_cfko_Lineage1"
-colnames(wt_keep) <- "corrected_wt_Lineage2"
-
-merged_seurat <- AddMetaData(merged_seurat, cfko_keep)
-merged_seurat <- AddMetaData(merged_seurat, wt_keep)
-
-gene_list <- c("CRABP2", "AGR2", "IGFBP7", "CAV1", "ARL4C", "BTG2", "FABP5",
-               "ISG20", "TGFBI", "CAPG", "RAB7B", "ICAM1", "MUC16", "MUC1",
-               "ATP1B1")
-
-lineage_colors_base <- MetBrewer::met.brewer("Egypt", 2)
-
-lineage_colors <- lineage_colors_base
-names(lineage_colors) <- c("corrected_wt_Lineage2", "corrected_cfko_Lineage1")
-
-different_plots <- plotPseudotime(merged_seurat,
-                                  lineages = c("corrected_cfko_Lineage1",
-                                               "corrected_wt_Lineage2"),
-                                  gene_list = gene_list,
-                                  col_by = "lineage", color = lineage_colors,
-                                  line_color = "lineage",
-                                  alpha = 0.25)
-
 colnames(cfko_pseudotime) <- paste0("corrected_", colnames(cfko_pseudotime))
 colnames(wt_pseudotime) <- paste0("corrected_", colnames(wt_pseudotime))
 
@@ -420,8 +467,11 @@ all_plots <- lapply(colnames(cfko_pseudotime), function(x){
                                     gene_list = "CRABP2",
                                     col_by = "lineage", color = lineage_colors,
                                     line_color = "lineage",
-                                    alpha = 0.25)
+                                    alpha = 0.25)[[1]] +
+    ggplot2::ggtitle(x)
 })
+
+# CFKO lineage 2 looks betst
 
 all_plots <- lapply(colnames(wt_pseudotime), function(x){
   names(lineage_colors) <- c(x, "corrected_cfko_Lineage2")
@@ -435,5 +485,25 @@ all_plots <- lapply(colnames(wt_pseudotime), function(x){
                                     alpha = 0.25)
 })
 
+different_plots <- plotPseudotime(merged_seurat,
+                                  lineages = c("corrected_cfko_Lineage2",
+                                               "corrected_wt_Lineage2"),
+                                  gene_list = gene_list,
+                                  col_by = "lineage", color = lineage_colors,
+                                  line_color = "lineage",
+                                  alpha = 0.25)
 
 names(different_plots) <- gene_list
+
+
+gene_list <- c("ATOX1", "CRABP2", "CFTR", "MUC1")
+
+
+different_plots <- plotPseudotime(merged_seurat,
+                                  lineages = c("cfko_Lineage2",
+                                               "wt_Lineage7"),
+                                  gene_list = gene_list,
+                                  col_by = "lineage", color = lineage_colors,
+                                  line_color = "lineage",
+                                  alpha = 0.25)
+
