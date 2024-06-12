@@ -96,7 +96,7 @@ pdf(file.path(save_dir, "images", "revision", "wt_ductal_umap.pdf"))
 print(plotDimRed(seurat_data, col_by = "ductal_celltype", plot_type = "rna.umap",
                  color = ductal_colors, highlight_group = TRUE,
                  group = c("ductal_1", "ductal_2", "ductal_3"),
-                 meta_data_col = "ductal_celltype"), ggrastr = TRUE)
+                 meta_data_col = "ductal_celltype", ggrastr = TRUE))
 
 dev.off()
 
@@ -172,6 +172,12 @@ heatmap <- plot_heatmap(ductal_seurat, gene_list = plot_genes$gene,
 print(heatmap$heatmap)
 
 dev.off()
+
+z_score <- data.frame(heatmap$z_score)
+z_score$updated_gene <- gene_mapping[rownames(z_score)]
+z_score$updated_gene <- ifelse(is.na(z_score$updated_gene), rownames(z_score),
+                               z_score$updated_gene)
+
 
 write.csv(heatmap$z_score, file.path(save_dir, "images", "revision",
                                      "ductal_de_z_score.csv" ))
